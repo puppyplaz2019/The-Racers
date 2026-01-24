@@ -1,56 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My App - Login</title>
+    <title>Free Cloud Site</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; padding: 50px; background: #f0f2f5; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 300px; }
-        input, select { width: 100%; margin: 10px 0; padding: 10px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0fdf4; display: flex; justify-content: center; padding: 40px; }
+        .box { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 320px; text-align: center; }
+        input, select { width: 100%; margin: 10px 0; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #3ecf8e; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .hidden { display: none; }
+        .profile-pic { font-size: 60px; margin: 15px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div id="login-form">
-        <h2>Login</h2>
-        <input type="text" placeholder="Username">
-        <input type="password" placeholder="Password">
-        <button onclick="alert('Note: This requires a database to work!')">Login</button>
-        <p>No account? <a href="#" onclick="toggleForm()">Create one</a></p>
+<div class="box">
+    <div id="auth-section">
+        <h2 id="title">Create Account</h2>
+        <input id="email" type="email" placeholder="Email">
+        <input id="pass" type="password" placeholder="Password">
+        <div id="signup-only">
+            <label>Pick your Emoji:</label>
+            <select id="emoji-choice">
+                <option value="🚀">🚀 Rocket</option>
+                <option value="💎">💎 Diamond</option>
+                <option value="🔥">🔥 Fire</option>
+            </select>
+        </div>
+        <button id="btnAction">Submit</button>
+        <p id="toggleText" style="cursor:pointer; text-decoration:underline;">Already have an account? Login</p>
     </div>
 
-    <div id="signup-form" class="hidden">
-        <h2>Create Account</h2>
-        <input type="text" placeholder="Choose Username">
-        <input type="password" placeholder="Choose Password">
-        
-        <label>Select Profile Emoji:</label>
-        <select id="emoji-picker">
-            <option value="😀">😀 Happy</option>
-            <option value="🚀">🚀 Space</option>
-            <option value="🐱">🐱 Cat</option>
-            <option value="🥷">🥷 Ninja</option>
-        </select>
-
-        <button onclick="saveUser()">Sign Up</button>
-        <p><a href="#" onclick="toggleForm()">Back to login</a></p>
+    <div id="user-section" class="hidden">
+        <div class="profile-pic" id="displayEmoji">👤</div>
+        <h3 id="displayEmail"></h3>
+        <button onclick="logout()" style="background:#666">Log Out</button>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    function toggleForm() {
-        document.getElementById('login-form').classList.toggle('hidden');
-        document.getElementById('signup-form').classList.toggle('hidden');
-    }
+    // 1. REPLACE THESE with your Supabase details
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const supabase = lib.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    function saveUser() {
-        // This is a temporary "save" that stays only in your browser's memory
-        alert("Account 'created' locally! To save this to the cloud permanently, you'll need a database like Firebase.");
-    }
+    let isLogin = false;
+
+    // Toggle between Login and Signup
+    document.getElementById('toggleText').onclick = () => {
+        isLogin = !isLogin;
+        document.getElementById('title').innerText = isLogin ? "Login" : "Create Account";
+        document.getElementById('signup-only').classList.toggle('hidden');
+        document.getElementById('toggleText').innerText = isLogin ? "Need an account? Sign up" : "Already have an account? Login";
+    };
+
+    document.getElementById('btnAction').onclick = async () => {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('pass').value;
+        const emoji = document.getElementById('emoji-choice').value;
+
+        if (isLogin) {
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) alert(error.message);
+        } else {
+            const { data, error } = await supabase.auth.signUp({ 
+                email, 
+                password,
+                options: { data: { user_emoji: emoji } } 
+            });
+            if (error) alert(error.message);
+            else alert("Check your email for a confirmation link!");
+        }
+    };
+
+    // Check for user
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('user-section').classList.remove('hidden');
+            document.getElementById('displayEmail').innerText = session.user.email;
+            document.getElementById('displayEmoji').innerText = session.user.user_metadata.user_emoji || "👤";
+        } else {
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('user-section').classList.add('hidden');
+        }
+    });
+
+    async function logout() { await supabase.auth.signOut(); }
 </script>
-
 </body>
 </html>
