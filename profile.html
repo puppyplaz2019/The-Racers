@@ -1,31 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>My Profile Settings</title>
-    <style>
-        body { font-family: sans-serif; background: #f0f0f0; padding: 20px; text-align: center; }
-        .box { background: white; padding: 20px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        #avatarCanvas { border: 3px solid #333; background: white; cursor: crosshair; margin: 10px; touch-action: none; }
-        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
-        button.clear { background: #dc3545; }
-    </style>
-</head>
-<body>
-
-    <div class="box">
-        <h1>Account Settings</h1>
-        
+<div class="box">
+    <h1>Account Settings</h1>
+    
+    <div id="editMode">
         <label>Username:</label><br>
         <input type="text" id="usernameInput" placeholder="Type your name..."><br><br>
-
         <h3>Draw Your Sprite:</h3>
         <canvas id="avatarCanvas" width="150" height="150"></canvas><br>
-
-        <button onclick="saveProfile()">Save to Browser</button>
-        <button class="clear" onclick="clearCanvas()">Clear Art</button>
+        <button onclick="saveProfile()">Save & Remember Me</button>
     </div>
 
-    <script src="script.js"></script>
-</body>
-</html>
+    <hr>
+
+    <div id="displayMode">
+        <h3>Current Account:</h3>
+        <img id="savedAvatarImg" style="border: 2px solid #007bff; display:none;" width="100">
+        <h2 id="displayUsername">No User Found</h2>
+        <button onclick="loadProfile()">Reload My Data</button>
+        <button class="clear" onclick="logout()">Forget Me</button>
+    </div>
+</div>
