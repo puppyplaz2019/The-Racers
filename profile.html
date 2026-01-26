@@ -1,21 +1,165 @@
-<div class="box">
-    <h1>Account Settings</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Web App: Profile & Friends</title>
+    <style>
+        /* Modern Styling */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eef2f3; padding: 20px; color: #333; }
+        .container { max-width: 400px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; }
+        
+        /* Canvas & Inputs */
+        canvas { border: 2px dashed #007bff; background: #fff; cursor: crosshair; margin: 15px 0; border-radius: 10px; touch-action: none; }
+        input { width: 80%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        
+        /* Buttons */
+        button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; margin: 5px; }
+        .btn-save { background: #28a745; color: white; }
+        .btn-load { background: #007bff; color: white; }
+        .btn-clear { background: #dc3545; color: white; }
+        button:hover { opacity: 0.8; transform: translateY(-2px); }
+
+        /* Friends List */
+        #friendsList { list-style: none; padding: 0; margin-top: 20px; text-align: left; }
+        .friend-item { background: #f8f9fa; padding: 10px; margin-bottom: 5px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #007bff; }
+        .remove-btn { background: #ff4d4d; color: white; padding: 2px 8px; font-size: 12px; }
+        
+        #savedAvatarImg { border: 3px solid #007bff; border-radius: 50%; margin-top: 10px; background: white; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>My Account</h1>
     
-    <div id="editMode">
-        <label>Username:</label><br>
-        <input type="text" id="usernameInput" placeholder="Type your name..."><br><br>
-        <h3>Draw Your Sprite:</h3>
-        <canvas id="avatarCanvas" width="150" height="150"></canvas><br>
-        <button onclick="saveProfile()">Save & Remember Me</button>
+    <div id="editArea">
+        <input type="text" id="usernameInput" placeholder="Set Username">
+        <p>Draw your Sprite below:</p>
+        <canvas id="avatarCanvas" width="150" height="150"></canvas>
+        <br>
+        <button class="btn-save" onclick="saveAll()">Save & Remember Me</button>
+        <button class="btn-clear" onclick="clearCanvas()">Clear Art</button>
     </div>
 
     <hr>
 
-    <div id="displayMode">
-        <h3>Current Account:</h3>
-        <img id="savedAvatarImg" style="border: 2px solid #007bff; display:none;" width="100">
-        <h2 id="displayUsername">No User Found</h2>
-        <button onclick="loadProfile()">Reload My Data</button>
-        <button class="clear" onclick="logout()">Forget Me</button>
+    <div id="displayArea">
+        <img id="savedAvatarImg" style="display:none;" width="80" height="80">
+        <h2 id="displayUsername">Guest User</h2>
+        
+        <h3>Friends List</h3>
+        <input type="text" id="friendNameInput" placeholder="Friend's Name">
+        <button class="btn-load" onclick="addFriend()">Add Friend</button>
+        
+        <ul id="friendsList"></ul>
+        
+        <hr>
+        <button class="btn-clear" onclick="resetEverything()">Delete All Data</button>
     </div>
 </div>
+
+<script>
+    const canvas = document.getElementById('avatarCanvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+
+    // --- DRAWING LOGIC ---
+    canvas.addEventListener('mousedown', () => drawing = true);
+    canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
+    canvas.addEventListener('mousemove', (e) => {
+        if (!drawing) return;
+        const rect = canvas.getBoundingClientRect();
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#007bff';
+        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        ctx.stroke();
+    });
+
+    function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+    // --- SAVE & LOAD PROFILE ---
+    function saveAll() {
+        const name = document.getElementById('usernameInput').value;
+        const sprite = canvas.toDataURL();
+
+        localStorage.setItem('webAppName', name);
+        localStorage.setItem('webAppAvatar', sprite);
+        
+        alert("Account Saved!");
+        loadAll();
+    }
+
+    function loadAll() {
+        // Load Profile
+        const name = localStorage.getItem('webAppName');
+        const sprite = localStorage.getItem('webAppAvatar');
+
+        if (name) {
+            document.getElementById('displayUsername').innerText = name;
+            document.getElementById('usernameInput').value = name;
+        }
+        if (sprite) {
+            const img = document.getElementById('savedAvatarImg');
+            img.src = sprite;
+            img.style.display = "inline-block";
+            
+            // Draw it back on canvas too
+            const canvasImg = new Image();
+            canvasImg.onload = () => ctx.drawImage(canvasImg, 0, 0);
+            canvasImg.src = sprite;
+        }
+
+        // Load Friends
+        displayFriends();
+    }
+
+    // --- FRIENDS LOGIC ---
+    function addFriend() {
+        const input = document.getElementById('friendNameInput');
+        const name = input.value.trim();
+        if (!name) return;
+
+        let friends = JSON.parse(localStorage.getItem('webAppFriends')) || [];
+        friends.push(name);
+        localStorage.setItem('webAppFriends', JSON.stringify(friends));
+        
+        input.value = "";
+        displayFriends();
+    }
+
+    function displayFriends() {
+        const list = document.getElementById('friendsList');
+        const friends = JSON.parse(localStorage.getItem('webAppFriends')) || [];
+        list.innerHTML = "";
+
+        friends.forEach((name, index) => {
+            const li = document.createElement('li');
+            li.className = "friend-item";
+            li.innerHTML = `<span>👤 ${name}</span> <button class="remove-btn" onclick="removeFriend(${index})">Delete</button>`;
+            list.appendChild(li);
+        });
+    }
+
+    function removeFriend(index) {
+        let friends = JSON.parse(localStorage.getItem('webAppFriends')) || [];
+        friends.splice(index, 1);
+        localStorage.setItem('webAppFriends', JSON.stringify(friends));
+        displayFriends();
+    }
+
+    function resetEverything() {
+        if(confirm("Are you sure? This deletes your profile and friends!")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
+
+    // Auto-Run on Open
+    window.onload = loadAll;
+</script>
+
+</body>
+</html>
