@@ -3,162 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Web App: Profile & Friends</title>
+    <title>Stickman World: The Game</title>
     <style>
-        /* Modern Styling */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eef2f3; padding: 20px; color: #333; }
-        .container { max-width: 400px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; }
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f3; text-align: center; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         
-        /* Canvas & Inputs */
-        canvas { border: 2px dashed #007bff; background: #fff; cursor: crosshair; margin: 15px 0; border-radius: 10px; touch-action: none; }
-        input { width: 80%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
-        
-        /* Buttons */
-        button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; margin: 5px; }
-        .btn-save { background: #28a745; color: white; }
-        .btn-load { background: #007bff; color: white; }
-        .btn-clear { background: #dc3545; color: white; }
-        button:hover { opacity: 0.8; transform: translateY(-2px); }
+        /* --- VISIBILITY TOGGLES --- */
+        .hidden { display: none !important; }
 
-        /* Friends List */
-        #friendsList { list-style: none; padding: 0; margin-top: 20px; text-align: left; }
-        .friend-item { background: #f8f9fa; padding: 10px; margin-bottom: 5px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #007bff; }
-        .remove-btn { background: #ff4d4d; color: white; padding: 2px 8px; font-size: 12px; }
+        /* --- STICKMAN GAME STAGE --- */
+        .stage { 
+            width: 100%; height: 250px; background: #90ee90; border: 3px solid #555; 
+            position: relative; overflow: hidden; border-radius: 10px; margin-bottom: 20px;
+            background-image: linear-gradient(to bottom, #87CEEB 70%, #90ee90 70%);
+        }
+        .stickman { position: absolute; bottom: 10px; left: 50px; width: 20px; height: 50px; transition: left 0.1s linear; z-index: 10; }
+        .head { width: 14px; height: 14px; border: 2px solid #333; border-radius: 50%; position: absolute; top: -16px; left: 2px; background: white; }
+        .torso { width: 2px; height: 25px; background: #333; position: absolute; left: 9px; }
+        .arm, .leg { width: 2px; height: 18px; background: #333; position: absolute; left: 9px; transform-origin: top; }
+        .leg.left { top: 25px; animation: walk 0.6s infinite alternate; }
+        .leg.right { top: 25px; animation: walk 0.6s infinite alternate-reverse; }
         
-        #savedAvatarImg { border: 3px solid #007bff; border-radius: 50%; margin-top: 10px; background: white; }
-        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+        @keyframes walk { from { transform: rotate(-30deg); } to { transform: rotate(30deg); } }
+        .jump-anim { animation: jump 0.5s ease; }
+        @keyframes jump { 0%, 100% { bottom: 10px; } 50% { bottom: 120px; } }
+
+        /* --- UI ELEMENTS --- */
+        input { padding: 12px; margin: 10px; border-radius: 5px; border: 1px solid #ccc; width: 70%; }
+        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; background: #007bff; color: white; margin: 5px; font-weight: bold; }
+        .btn-red { background: #dc3545; }
+        #friendsList { list-style: none; padding: 0; text-align: left; max-height: 100px; overflow-y: auto; }
+        .friend-item { background: #f8f9fa; padding: 5px 10px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>My Account</h1>
     
-    <div id="editArea">
-        <input type="text" id="usernameInput" placeholder="Set Username">
-        <p>Draw your Sprite below:</p>
-        <canvas id="avatarCanvas" width="150" height="150"></canvas>
+    <div id="loginScreen">
+        <h1>Welcome to Stickman World</h1>
+        <p>Enter your name to begin your adventure:</p>
+        <input type="text" id="usernameInput" placeholder="Your Hero Name">
         <br>
-        <button class="btn-save" onclick="saveAll()">Save & Remember Me</button>
-        <button class="btn-clear" onclick="clearCanvas()">Clear Art</button>
+        <button onclick="enterGame()">Enter Game & Remember Me</button>
     </div>
 
-    <hr>
-
-    <div id="displayArea">
-        <img id="savedAvatarImg" style="display:none;" width="80" height="80">
-        <h2 id="displayUsername">Guest User</h2>
+    <div id="gameScreen" class="hidden">
+        <h1>Hello, <span id="displayUsername">Player</span>!</h1>
         
-        <h3>Friends List</h3>
-        <input type="text" id="friendNameInput" placeholder="Friend's Name">
-        <button class="btn-load" onclick="addFriend()">Add Friend</button>
-        
-        <ul id="friendsList"></ul>
+        <div class="stage">
+            <div id="player" class="stickman">
+                <div class="head"></div>
+                <div class="torso"></div>
+                <div class="leg left"></div>
+                <div class="leg right"></div>
+            </div>
+        </div>
+        <p><b>Arrows</b> to Move | <b>Space</b> to Jump</p>
         
         <hr>
-        <button class="btn-clear" onclick="resetEverything()">Delete All Data</button>
+        <h3>Friends in this World</h3>
+        <input type="text" id="friendInput" placeholder="Add a friend...">
+        <button onclick="addFriend()">Add</button>
+        <ul id="friendsList"></ul>
+
+        <button class="btn-red" onclick="logout()">Logout / Change Character</button>
     </div>
 </div>
 
 <script>
-    const canvas = document.getElementById('avatarCanvas');
-    const ctx = canvas.getContext('2d');
-    let drawing = false;
+    const loginScreen = document.getElementById('loginScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    const player = document.getElementById('player');
+    let posX = 50;
 
-    // --- DRAWING LOGIC ---
-    canvas.addEventListener('mousedown', () => drawing = true);
-    canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
-    canvas.addEventListener('mousemove', (e) => {
-        if (!drawing) return;
-        const rect = canvas.getBoundingClientRect();
-        ctx.lineWidth = 6;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = '#007bff';
-        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-        ctx.stroke();
-    });
-
-    function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
-
-    // --- SAVE & LOAD PROFILE ---
-    function saveAll() {
+    // --- GAME ENTRY LOGIC ---
+    function enterGame() {
         const name = document.getElementById('usernameInput').value;
-        const sprite = canvas.toDataURL();
+        if (!name) { alert("Please enter a name!"); return; }
 
-        localStorage.setItem('webAppName', name);
-        localStorage.setItem('webAppAvatar', sprite);
-        
-        alert("Account Saved!");
-        loadAll();
+        localStorage.setItem('gameUser', name);
+        showGame(name);
     }
 
-    function loadAll() {
-        // Load Profile
-        const name = localStorage.getItem('webAppName');
-        const sprite = localStorage.getItem('webAppAvatar');
-
-        if (name) {
-            document.getElementById('displayUsername').innerText = name;
-            document.getElementById('usernameInput').value = name;
-        }
-        if (sprite) {
-            const img = document.getElementById('savedAvatarImg');
-            img.src = sprite;
-            img.style.display = "inline-block";
-            
-            // Draw it back on canvas too
-            const canvasImg = new Image();
-            canvasImg.onload = () => ctx.drawImage(canvasImg, 0, 0);
-            canvasImg.src = sprite;
-        }
-
-        // Load Friends
+    function showGame(name) {
+        document.getElementById('displayUsername').innerText = name;
+        loginScreen.classList.add('hidden'); // Hide Login
+        gameScreen.classList.remove('hidden'); // Show Game
         displayFriends();
     }
 
+    function logout() {
+        localStorage.removeItem('gameUser');
+        location.reload();
+    }
+
+    // --- MOVEMENT LOGIC ---
+    window.addEventListener('keydown', (e) => {
+        if (gameScreen.classList.contains('hidden')) return; // Don't move if not in game
+
+        if (e.key === "ArrowRight") {
+            posX += 15;
+            player.style.left = posX + "px';
+            player.style.transform = "scaleX(1)";
+        }
+        if (e.key === "ArrowLeft") {
+            posX -= 15;
+            player.style.left = posX + "px';
+            player.style.transform = "scaleX(-1)";
+        }
+        if (e.key === " " || e.key === "ArrowUp") {
+            if (!player.classList.contains('jump-anim')) {
+                player.classList.add('jump-anim');
+                setTimeout(() => player.classList.remove('jump-anim'), 500);
+            }
+        }
+    });
+
     // --- FRIENDS LOGIC ---
     function addFriend() {
-        const input = document.getElementById('friendNameInput');
-        const name = input.value.trim();
-        if (!name) return;
-
-        let friends = JSON.parse(localStorage.getItem('webAppFriends')) || [];
-        friends.push(name);
-        localStorage.setItem('webAppFriends', JSON.stringify(friends));
-        
+        const input = document.getElementById('friendInput');
+        if (!input.value) return;
+        let friends = JSON.parse(localStorage.getItem('gameFriends')) || [];
+        friends.push(input.value);
+        localStorage.setItem('gameFriends', JSON.stringify(friends));
         input.value = "";
         displayFriends();
     }
 
     function displayFriends() {
         const list = document.getElementById('friendsList');
-        const friends = JSON.parse(localStorage.getItem('webAppFriends')) || [];
+        const friends = JSON.parse(localStorage.getItem('gameFriends')) || [];
         list.innerHTML = "";
-
-        friends.forEach((name, index) => {
-            const li = document.createElement('li');
-            li.className = "friend-item";
-            li.innerHTML = `<span>👤 ${name}</span> <button class="remove-btn" onclick="removeFriend(${index})">Delete</button>`;
-            list.appendChild(li);
+        friends.forEach((f, i) => {
+            list.innerHTML += `<li class="friend-item">${f} <button class="btn-red" style="padding:2px 5px; font-size:10px;" onclick="removeFriend(${i})">X</button></li>`;
         });
     }
 
-    function removeFriend(index) {
-        let friends = JSON.parse(localStorage.getItem('webAppFriends')) || [];
-        friends.splice(index, 1);
-        localStorage.setItem('webAppFriends', JSON.stringify(friends));
+    function removeFriend(i) {
+        let friends = JSON.parse(localStorage.getItem('gameFriends'));
+        friends.splice(i, 1);
+        localStorage.setItem('gameFriends', JSON.stringify(friends));
         displayFriends();
     }
 
-    function resetEverything() {
-        if(confirm("Are you sure? This deletes your profile and friends!")) {
-            localStorage.clear();
-            location.reload();
+    // --- AUTO-LOAD ---
+    window.onload = () => {
+        const savedName = localStorage.getItem('gameUser');
+        if (savedName) {
+            showGame(savedName);
         }
-    }
-
-    // Auto-Run on Open
-    window.onload = loadAll;
+    };
 </script>
 
 </body>
