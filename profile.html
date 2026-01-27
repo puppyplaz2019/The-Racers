@@ -2,58 +2,154 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Debug Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stickman Adventure</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; background: #eef2f3; }
-        .box { background: white; padding: 30px; border-radius: 10px; display: inline-block; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .hidden { display: none; }
-        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
-        input { padding: 10px; font-size: 16px; margin-bottom: 10px; width: 200px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f3; text-align: center; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .hidden { display: none !important; }
+
+        /* --- THE STICKMAN STAGE --- */
+        .stage { 
+            width: 100%; height: 200px; background: #87CEEB; border: 3px solid #555; 
+            position: relative; overflow: hidden; border-radius: 10px; margin-bottom: 20px;
+            background-image: linear-gradient(to bottom, #87CEEB 70%, #90ee90 70%);
+        }
+        .stickman { position: absolute; bottom: 10px; left: 50px; width: 20px; height: 50px; transition: left 0.1s linear; }
+        .head { width: 14px; height: 14px; border: 2px solid #333; border-radius: 50%; position: absolute; top: -16px; left: 2px; background: white; }
+        .torso { width: 2px; height: 25px; background: #333; position: absolute; left: 9px; }
+        .arm, .leg { width: 2px; height: 18px; background: #333; position: absolute; left: 9px; transform-origin: top; }
+        .leg.left { top: 25px; animation: walk 0.6s infinite alternate; }
+        .leg.right { top: 25px; animation: walk 0.6s infinite alternate-reverse; }
+        
+        @keyframes walk { from { transform: rotate(-30deg); } to { transform: rotate(30deg); } }
+        .jump-anim { animation: jump 0.5s ease; }
+        @keyframes jump { 0%, 100% { bottom: 10px; } 50% { bottom: 100px; } }
+
+        /* --- UI STYLING --- */
+        input { padding: 10px; margin: 10px; border-radius: 5px; border: 1px solid #ccc; width: 80%; }
+        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; background: #007bff; color: white; font-weight: bold; }
+        .btn-red { background: #dc3545; font-size: 12px; margin-top: 10px; }
+        #friendsList { list-style: none; padding: 0; text-align: left; }
+        .friend-item { background: #f8f9fa; padding: 5px 10px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
 
-    <div class="box">
-        <div id="loginSection">
-            <h1>Login Test</h1>
-            <input type="text" id="nameInput" placeholder="Enter Name">
-            <br>
-            <button onclick="testButton()">CLICK TO ENTER</button>
-        </div>
-
-        <div id="gameSection" class="hidden">
-            <h1>Welcome!</h1>
-            <p>If you see this, the button works!</p>
-            <button onclick="localStorage.clear(); location.reload();">Reset Everything</button>
-        </div>
+<div class="container">
+    
+    <div id="loginSection">
+        <h1>Stickman RPG</h1>
+        <p>Enter your hero name:</p>
+        <input type="text" id="nameInput" placeholder="Name...">
+        <br>
+        <button onclick="enterGame()">START ADVENTURE</button>
     </div>
 
-    <script>
-        function testButton() {
-            console.log("Button was clicked!");
-            const name = document.getElementById('nameInput').value;
-            
-            if (!name) {
-                alert("Please type a name first!");
-                return;
-            }
+    <div id="gameSection" class="hidden">
+        <h2>Hero: <span id="displayName"></span></h2>
+        
+        <div class="stage">
+            <div id="player" class="stickman">
+                <div class="head"></div>
+                <div class="torso"></div>
+                <div class="leg left"></div>
+                <div class="leg right"></div>
+            </div>
+        </div>
+        <p><small>Arrows to move | Space to jump</small></p>
 
-            // Save to memory
-            localStorage.setItem('hero', name);
-            
-            // Swap sections
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('gameSection').classList.remove('hidden');
+        <hr>
+        <h3>Friends List</h3>
+        <input type="text" id="friendInput" style="width: 60%;" placeholder="Friend's Name">
+        <button onclick="addFriend()">Add</button>
+        <ul id="friendsList"></ul>
+
+        <button class="btn-red" onclick="logout()">LOGOUT / RESET</button>
+    </div>
+
+</div>
+
+<script>
+    const player = document.getElementById('player');
+    let posX = 50;
+
+    // --- LOGIN / LOGOUT ---
+    function enterGame() {
+        const name = document.getElementById('nameInput').value;
+        if (!name) return alert("Please type a name!");
+        localStorage.setItem('heroName', name);
+        showGame(name);
+    }
+
+    function showGame(name) {
+        document.getElementById('displayName').innerText = name;
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('gameSection').classList.remove('hidden');
+        displayFriends();
+    }
+
+    function logout() {
+        localStorage.clear();
+        location.reload();
+    }
+
+    // --- MOVEMENT ---
+    window.addEventListener('keydown', (e) => {
+        // Only move if we are in the game screen
+        if (document.getElementById('gameSection').classList.contains('hidden')) return;
+
+        if (e.key === "ArrowRight") {
+            posX += 15;
+            player.style.left = posX + "px";
+            player.style.transform = "scaleX(1)";
         }
-
-        // Check if already logged in
-        window.onload = function() {
-            const saved = localStorage.getItem('hero');
-            if (saved) {
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('gameSection').classList.remove('hidden');
+        if (e.key === "ArrowLeft") {
+            posX -= 15;
+            player.style.left = posX + "px";
+            player.style.transform = "scaleX(-1)";
+        }
+        if (e.key === " " || e.key === "ArrowUp") {
+            if (!player.classList.contains('jump-anim')) {
+                player.classList.add('jump-anim');
+                setTimeout(() => player.classList.remove('jump-anim'), 500);
             }
-        };
-    </script>
+        }
+    });
+
+    // --- FRIENDS ---
+    function addFriend() {
+        const input = document.getElementById('friendInput');
+        if (!input.value) return;
+        let friends = JSON.parse(localStorage.getItem('heroFriends')) || [];
+        friends.push(input.value);
+        localStorage.setItem('heroFriends', JSON.stringify(friends));
+        input.value = "";
+        displayFriends();
+    }
+
+    function displayFriends() {
+        const list = document.getElementById('friendsList');
+        const friends = JSON.parse(localStorage.getItem('heroFriends')) || [];
+        list.innerHTML = "";
+        friends.forEach((f, i) => {
+            list.innerHTML += `<li class="friend-item">${f} <button class="btn-red" style="padding:2px 5px" onclick="removeFriend(${i})">X</button></li>`;
+        });
+    }
+
+    function removeFriend(i) {
+        let friends = JSON.parse(localStorage.getItem('heroFriends'));
+        friends.splice(i, 1);
+        localStorage.setItem('heroFriends', JSON.stringify(friends));
+        displayFriends();
+    }
+
+    // --- AUTO-LOAD ---
+    window.onload = function() {
+        const saved = localStorage.getItem('heroName');
+        if (saved) showGame(saved);
+    };
+</script>
+
 </body>
 </html>
