@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Cave - Safe Exit</title>
+    <title>3D Cave - Sealed Corners</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #ui { 
@@ -18,8 +18,8 @@
 </head>
 <body>
     <div id="ui">
-        <h1>CAVE_EXPLORER_V9_FIX</h1>
-        <p>Hole is on the LEFT near the start!</p>
+        <h1>CAVE_EXPLORER_V10</h1>
+        <p>Corners are now SEALED.</p>
         <p id="dist">DISTANCE: ---</p>
     </div>
     <div id="msg">✨ TREASURE CLAIMED! ✨</div>
@@ -53,18 +53,27 @@
         const sun = new THREE.DirectionalLight(0xffffff, 1);
         sun.position.set(-10, 20, 10); scene.add(sun);
 
-        // WALL SYSTEM
-        for(let i=0; i<10; i++) {
-            const zPos = (i * 4) - 18;
-            const colR = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 10, 6), rockMat);
-            colR.position.set(10, 2, zPos); scene.add(colR);
+        // SEALED WALL SYSTEM
+        const wallBlockGeo = new THREE.BoxGeometry(4, 10, 40);
+        
+        // Right Wall (Solid Block)
+        const rightWall = new THREE.Mesh(wallBlockGeo, rockMat);
+        rightWall.position.set(11, 2, 0); scene.add(rightWall);
 
-            // ONLY place left pillars if they aren't in the "Hole Zone" (z between -4 and 4)
-            if (zPos < -4 || zPos > 4) {
-                const colL = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 10, 6), rockMat);
-                colL.position.set(-10, 2, zPos); scene.add(colL);
-            }
-        }
+        // Left Wall (Two blocks with a gap in the middle)
+        const leftWallFront = new THREE.Mesh(new THREE.BoxGeometry(4, 10, 15), rockMat);
+        leftWallFront.position.set(-11, 2, -12.5); scene.add(leftWallFront);
+
+        const leftWallBack = new THREE.Mesh(new THREE.BoxGeometry(4, 10, 15), rockMat);
+        leftWallBack.position.set(-11, 2, 12.5); scene.add(leftWallBack);
+
+        // Front and Back Ends (Solid)
+        const endWallGeo = new THREE.BoxGeometry(20, 10, 1);
+        const frontEnd = new THREE.Mesh(endWallGeo, rockMat);
+        frontEnd.position.set(0, 2, -20); scene.add(frontEnd);
+
+        const backEnd = new THREE.Mesh(endWallGeo, rockMat);
+        backEnd.position.set(0, 2, 20); scene.add(backEnd);
 
         // CHEST
         const chest = new THREE.Group();
@@ -102,24 +111,24 @@
             if (keys['KeyA']) { nextX -= Math.cos(yaw) * spd; nextZ += Math.sin(yaw) * spd; }
             if (keys['KeyD']) { nextX += Math.cos(yaw) * spd; nextZ -= Math.sin(yaw) * spd; }
 
-            // THE PASS-THROUGH LOGIC
-            // If you are in the gap (Z between -5 and 5), you can walk past X = -8
+            // COLLISION
+            // Hole is between Z = -5 and Z = 5
             const inGap = (nextZ > -5 && nextZ < 5);
             
-            if (nextX < -8.5 && !inGap) nextX = -8.5; 
-            if (nextX > 8.5) nextX = 8.5;
+            if (nextX < -8.8 && !inGap) nextX = -8.8; 
+            if (nextX > 8.8) nextX = 8.8;
             if (nextZ > 19) nextZ = 19;
             if (nextZ < -19) nextZ = -19;
 
             camera.position.x = nextX;
             camera.position.z = nextZ;
 
-            // Change fog/sky color if you leave the cave
+            // Sky Logic
             if (camera.position.x < -10) {
-                scene.background = new THREE.Color(0x87CEEB); // Sky Blue
+                scene.background = new THREE.Color(0x87CEEB);
                 scene.fog.color = new THREE.Color(0x87CEEB);
             } else {
-                scene.background = new THREE.Color(0x000000); // Black Cave
+                scene.background = new THREE.Color(0x000000);
                 scene.fog.color = new THREE.Color(0x000000);
             }
 
