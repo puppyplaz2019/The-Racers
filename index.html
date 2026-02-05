@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Cave Explorer</title>
+    <title>3D Cave Explorer - Walls Update</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #ui { 
             position: absolute; top: 10px; left: 10px; 
-            color: lime; font-family: monospace; pointer-events: none; 
-            background: rgba(0,0,0,0.5); padding: 10px;
+            color: #00ff00; font-family: 'Courier New', monospace; pointer-events: none; 
+            background: rgba(0,0,0,0.7); padding: 15px; border: 1px solid #00ff00;
         }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h1>CAVE_EXPLORER_V1</h1>
-        <p>CONTROLS: W,A,S,D to move</p>
+        <h1>CAVE_EXPLORER_V2</h1>
+        <p>MISSION: Find the Golden Cube</p>
         <p id="dist">DISTANCE: SCANNING...</p>
     </div>
 
@@ -22,20 +22,54 @@
 
     <script>
         const scene = new THREE.Scene();
-        scene.fog = new THREE.Fog(0x000000, 1, 15);
+        scene.fog = new THREE.Fog(0x000000, 1, 12); // Thick fog for cave vibes
+        
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-        const material = new THREE.MeshStandardMaterial({ color: 0xFFD700 });
-        const treasure = new THREE.Mesh(geometry, material);
-        treasure.position.set(Math.random() * 10 - 5, 0, Math.random() * -10 - 2);
+        // 1. THE FLOOR (Rocky/Grid look)
+        const floorGeo = new THREE.PlaneGeometry(100, 100);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x222222, side: THREE.DoubleSide });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = Math.PI / 2; // Lay it flat
+        floor.position.y = -0.5;
+        scene.add(floor);
+
+        // 2. THE WALLS
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+        const wallGeo = new THREE.BoxGeometry(20, 10, 1);
+        
+        // Back Wall
+        const wall1 = new THREE.Mesh(wallGeo, wallMat);
+        wall1.position.z = -15;
+        scene.add(wall1);
+
+        // Left Wall
+        const wall2 = new THREE.Mesh(wallGeo, wallMat);
+        wall2.rotation.y = Math.PI / 2;
+        wall2.position.x = -10;
+        scene.add(wall2);
+
+        // Right Wall
+        const wall3 = new THREE.Mesh(wallGeo, wallMat);
+        wall3.rotation.y = Math.PI / 2;
+        wall3.position.x = 10;
+        scene.add(wall3);
+
+        // 3. THE TREASURE
+        const treasure = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, 0.5, 0.5),
+            new THREE.MeshStandardMaterial({ color: 0xFFD700, emissive: 0x443300 })
+        );
+        treasure.position.set(Math.random() * 10 - 5, 0, -8);
         scene.add(treasure);
 
-        const light = new THREE.PointLight(0xffffff, 2, 20);
+        // 4. LIGHTING (Flashlight + Ambient)
+        const light = new THREE.PointLight(0xffffff, 2, 15);
         scene.add(light);
+        scene.add(new THREE.AmbientLight(0x222222)); // Dim light so walls aren't pitch black
 
         let keys = {};
         window.onkeydown = (e) => keys[e.key.toLowerCase()] = true;
@@ -46,21 +80,26 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            
+            // Movement logic
             if (keys['w']) camera.position.z -= 0.1;
             if (keys['s']) camera.position.z += 0.1;
             if (keys['a']) camera.position.x -= 0.1;
             if (keys['d']) camera.position.x += 0.1;
 
+            // Flashlight follows camera
             light.position.copy(camera.position);
             treasure.rotation.y += 0.05;
 
+            // Distance Tracking
             const d = camera.position.distanceTo(treasure.position);
             document.getElementById('dist').innerText = "DISTANCE: " + d.toFixed(2) + "m";
 
             if(d < 0.7) {
-                alert("TREASURE FOUND!");
-                treasure.position.set(Math.random() * 10 - 5, 0, Math.random() * -10 - 2);
+                alert("YOU FOUND IT!");
+                treasure.position.set(Math.random() * 10 - 5, 0, camera.position.z - 8);
             }
+
             renderer.render(scene, camera);
         }
         animate();
