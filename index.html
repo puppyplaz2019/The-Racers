@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Cave - Looking Up Update</title>
+    <title>3D Cave - Pro Controls</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #ui { 
@@ -13,9 +13,9 @@
 </head>
 <body>
     <div id="ui">
-        <h1>CAVE_EXPLORER_V5</h1>
-        <p>WASD: Move | Arrows: Look All Around</p>
-        <p id="dist">DISTANCE TO CHEST: SCANNING...</p>
+        <h1>CAVE_EXPLORER_V6</h1>
+        <p>WASD: Move/Strafe | Arrows: Look</p>
+        <p id="dist">DISTANCE: ---</p>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -31,7 +31,7 @@
 
         const rockMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a });
 
-        // 1. TALL CAVE CONSTRUCTION
+        // CAVE STRUCTURE
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(15, 30), rockMat);
         floor.rotation.x = -Math.PI/2; floor.position.y = -1.5; scene.add(floor);
 
@@ -48,18 +48,17 @@
         const backWall = new THREE.Mesh(new THREE.PlaneGeometry(15, 8), rockMat);
         backWall.position.z = -15; backWall.position.y = 2; scene.add(backWall);
 
-        // 2. RANDOMIZED STALACTITES
+        // STALACTITES
         for(let i=0; i<25; i++) {
-            const h = Math.random() * 2.5 + 0.5; // Random height
-            const w = Math.random() * 0.4 + 0.1; // Random width
-            const spikeGeo = new THREE.ConeGeometry(w, h, 6);
-            const spike = new THREE.Mesh(spikeGeo, rockMat);
+            const h = Math.random() * 2.5 + 0.5;
+            const w = Math.random() * 0.4 + 0.1;
+            const spike = new THREE.Mesh(new THREE.ConeGeometry(w, h, 6), rockMat);
             spike.position.set(Math.random()*14-7, 6 - (h/2), Math.random()*28-14);
             spike.rotation.x = Math.PI;
             scene.add(spike);
         }
 
-        // 3. THE TREASURE CHEST
+        // TREASURE CHEST
         const chestGroup = new THREE.Group();
         const base = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 0.6), new THREE.MeshStandardMaterial({color: 0x4A3728}));
         const lid = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.25, 0.65), new THREE.MeshStandardMaterial({color: 0xD4AF37}));
@@ -68,57 +67,68 @@
         chestGroup.position.set(0, -1.2, -10);
         scene.add(chestGroup);
 
-        // 4. LIGHTS
+        // LIGHTS
         const flashlight = new THREE.PointLight(0xffffff, 2.5, 18);
         scene.add(flashlight);
         scene.add(new THREE.AmbientLight(0x111111));
 
-        // 5. CONTROLS
+        // CONTROLS
         let keys = {};
         window.onkeydown = (e) => keys[e.code] = true;
         window.onkeyup = (e) => keys[e.code] = false;
 
-        let rotY = 0; // Left/Right
-        let rotX = 0; // Up/Down
+        let yaw = 0;   // Left/Right
+        let pitch = 0; // Up/Down
         camera.position.z = 12;
         camera.position.y = 1;
+
+        // Use a container for the camera to prevent "roll" (tilting)
+        const playerHolder = new THREE.Group();
+        playerHolder.add(camera);
+        scene.add(playerHolder);
 
         function animate() {
             requestAnimationFrame(animate);
 
-            // Turn Left/Right
-            if (keys['ArrowLeft']) rotY += 0.04;
-            if (keys['ArrowRight']) rotY -= 0.04;
-            
-            // Look Up/Down
-            if (keys['ArrowUp']) rotX += 0.03;
-            if (keys['ArrowDown']) rotX -= 0.03;
+            // 1. ROTATION (Using separate axes to keep it stable)
+            if (keys['ArrowLeft']) yaw += 0.04;
+            if (keys['ArrowRight']) yaw -= 0.04;
+            if (keys['ArrowUp']) pitch += 0.03;
+            if (keys['ArrowDown']) pitch -= 0.03;
 
-            // Clamp vertical look so you don't flip over
-            rotX = Math.max(-Math.PI/3, Math.min(Math.PI/3, rotX));
+            pitch = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, pitch));
 
-            camera.rotation.x = rotX;
-            camera.rotation.y = rotY;
+            camera.rotation.x = pitch;
+            playerHolder.rotation.y = yaw;
 
+            // 2. MOVEMENT (WASD)
             const spd = 0.12;
             if (keys['KeyW']) {
-                camera.position.x -= Math.sin(rotY) * spd;
-                camera.position.z -= Math.cos(rotY) * spd;
+                playerHolder.position.x -= Math.sin(yaw) * spd;
+                playerHolder.position.z -= Math.cos(yaw) * spd;
             }
             if (keys['KeyS']) {
-                camera.position.x += Math.sin(rotY) * spd;
-                camera.position.z += Math.cos(rotY) * spd;
+                playerHolder.position.x += Math.sin(yaw) * spd;
+                playerHolder.position.z += Math.cos(yaw) * spd;
+            }
+            if (keys['KeyA']) {
+                playerHolder.position.x -= Math.cos(yaw) * spd;
+                playerHolder.position.z += Math.sin(yaw) * spd;
+            }
+            if (keys['KeyD']) {
+                playerHolder.position.x += Math.cos(yaw) * spd;
+                playerHolder.position.z -= Math.sin(yaw) * spd;
             }
 
-            // COLLISION
-            if (camera.position.x > 6.8) camera.position.x = 6.8;
-            if (camera.position.x < -6.8) camera.position.x = -6.8;
-            if (camera.position.z > 14) camera.position.z = 14;
-            if (camera.position.z < -14) camera.position.z = -14;
+            // COLLISION BOUNDARIES
+            if (playerHolder.position.x > 6.5) playerHolder.position.x = 6.5;
+            if (playerHolder.position.x < -6.5) playerHolder.position.x = -6.5;
+            if (playerHolder.position.z > 14) playerHolder.position.z = 14;
+            if (playerHolder.position.z < -14) playerHolder.position.z = -14;
 
-            flashlight.position.copy(camera.position);
+            flashlight.position.copy(playerHolder.position);
             
-            const d = camera.position.distanceTo(chestGroup.position);
+            const d = playerHolder.position.distanceTo(chestGroup.position);
             document.getElementById('dist').innerText = "DIST TO CHEST: " + d.toFixed(1) + "m";
 
             if(d < 1.2) {
