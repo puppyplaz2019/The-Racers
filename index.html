@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Cave - The Grass Exit Fix</title>
+    <title>3D Cave - Safe Exit</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #ui { 
@@ -12,14 +12,14 @@
         #msg {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             color: gold; font-family: monospace; font-size: 30px; display: none;
-            text-shadow: 2px 2px #000;
+            text-shadow: 2px 2px #000; pointer-events: none;
         }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h1>CAVE_EXPLORER_V9</h1>
-        <p>WASD: Walk | Arrows: Look</p>
+        <h1>CAVE_EXPLORER_V9_FIX</h1>
+        <p>Hole is on the LEFT near the start!</p>
         <p id="dist">DISTANCE: ---</p>
     </div>
     <div id="msg">✨ TREASURE CLAIMED! ✨</div>
@@ -28,7 +28,7 @@
 
     <script>
         const scene = new THREE.Scene();
-        scene.fog = new THREE.Fog(0x000000, 1, 30);
+        scene.fog = new THREE.Fog(0x000000, 1, 35);
         
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -38,52 +38,44 @@
         const rockMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
         const grassMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27 });
 
-        // 1. CAVE AND GRASS
+        // FLOOR AND CEILING
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 40), rockMat);
         floor.rotation.x = -Math.PI/2; floor.position.y = -1.5; scene.add(floor);
 
         const ceil = new THREE.Mesh(new THREE.PlaneGeometry(20, 40), rockMat);
         ceil.rotation.x = Math.PI/2; ceil.position.y = 5; scene.add(ceil);
 
+        // INFINITE GRASS
         const grass = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), grassMat);
-        grass.rotation.x = -Math.PI/2; grass.position.set(-1000, -1.51, 0); 
+        grass.rotation.x = -Math.PI/2; grass.position.set(-500, -1.52, 0); 
         scene.add(grass);
         
-        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-        sun.position.set(-50, 50, 0); scene.add(sun);
+        const sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(-10, 20, 10); scene.add(sun);
 
-        // 2. ONE HOLE WALL SYSTEM
+        // WALL SYSTEM
         for(let i=0; i<10; i++) {
             const zPos = (i * 4) - 18;
-            // Right Wall (Solid)
             const colR = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 10, 6), rockMat);
             colR.position.set(10, 2, zPos); scene.add(colR);
 
-            // Left Wall (Skip ONLY the middle for the hole)
-            if (zPos < -2 || zPos > 2) {
+            // ONLY place left pillars if they aren't in the "Hole Zone" (z between -4 and 4)
+            if (zPos < -4 || zPos > 4) {
                 const colL = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 10, 6), rockMat);
                 colL.position.set(-10, 2, zPos); scene.add(colL);
             }
         }
 
-        // 3. PEBBLES & STALACTITES
-        for(let i=0; i<50; i++) {
-            const p = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1), rockMat);
-            p.position.set(Math.random()*16-8, -1.45, Math.random()*36-18); scene.add(p);
-        }
-
-        // 4. THE CHEST
+        // CHEST
         const chest = new THREE.Group();
         const b = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.6, 0.7), new THREE.MeshStandardMaterial({color: 0x4A3728}));
         const l = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.3, 0.75), new THREE.MeshStandardMaterial({color: 0xD4AF37}));
         l.position.y = 0.4; chest.add(b); chest.add(l);
         chest.position.set(0, -1.2, -5); scene.add(chest);
 
-        const flashlight = new THREE.PointLight(0xffffff, 2.5, 20);
+        const flashlight = new THREE.PointLight(0xffffff, 3, 20);
         scene.add(flashlight);
-        scene.add(new THREE.AmbientLight(0x222222));
 
-        // 5. CONTROLS
         let keys = {};
         window.onkeydown = (e) => keys[e.code] = true;
         window.onkeyup = (e) => keys[e.code] = false;
@@ -101,7 +93,7 @@
             pitch = Math.max(-1.2, Math.min(1.2, pitch));
             camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
-            const spd = 0.15;
+            const spd = 0.18;
             let nextX = camera.position.x;
             let nextZ = camera.position.z;
 
@@ -110,19 +102,26 @@
             if (keys['KeyA']) { nextX -= Math.cos(yaw) * spd; nextZ += Math.sin(yaw) * spd; }
             if (keys['KeyD']) { nextX += Math.cos(yaw) * spd; nextZ -= Math.sin(yaw) * spd; }
 
-            // IMPROVED COLLISION
-            // Only block X-axis if NOT in the hole zone
-            const inHoleZone = (nextZ > -3 && nextZ < 3);
+            // THE PASS-THROUGH LOGIC
+            // If you are in the gap (Z between -5 and 5), you can walk past X = -8
+            const inGap = (nextZ > -5 && nextZ < 5);
             
-            if (!inHoleZone || nextX > -8) { // If not in hole, or if inside the cave
-                if (nextX < -8.5) nextX = -8.5; // Block Left Wall
-            }
-            if (nextX > 8.5) nextX = 8.5;  // Block Right Wall
-            if (nextZ > 19) nextZ = 19;    // Block Front
-            if (nextZ < -19) nextZ = -19;  // Block Back
+            if (nextX < -8.5 && !inGap) nextX = -8.5; 
+            if (nextX > 8.5) nextX = 8.5;
+            if (nextZ > 19) nextZ = 19;
+            if (nextZ < -19) nextZ = -19;
 
             camera.position.x = nextX;
             camera.position.z = nextZ;
+
+            // Change fog/sky color if you leave the cave
+            if (camera.position.x < -10) {
+                scene.background = new THREE.Color(0x87CEEB); // Sky Blue
+                scene.fog.color = new THREE.Color(0x87CEEB);
+            } else {
+                scene.background = new THREE.Color(0x000000); // Black Cave
+                scene.fog.color = new THREE.Color(0x000000);
+            }
 
             flashlight.position.copy(camera.position);
             const d = camera.position.distanceTo(chest.position);
