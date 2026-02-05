@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Cave - Sealed Corners</title>
+    <title>3D Cave - Infinite Freedom</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #ui { 
@@ -18,8 +18,8 @@
 </head>
 <body>
     <div id="ui">
-        <h1>CAVE_EXPLORER_V10</h1>
-        <p>Corners are now SEALED.</p>
+        <h1>CAVE_EXPLORER_V11</h1>
+        <p>Exit the cave to see the Sun!</p>
         <p id="dist">DISTANCE: ---</p>
     </div>
     <div id="msg">✨ TREASURE CLAIMED! ✨</div>
@@ -30,7 +30,7 @@
         const scene = new THREE.Scene();
         scene.fog = new THREE.Fog(0x000000, 1, 35);
         
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
@@ -38,51 +38,64 @@
         const rockMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
         const grassMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27 });
 
-        // FLOOR AND CEILING
+        // 1. ENVIRONMENT
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 40), rockMat);
         floor.rotation.x = -Math.PI/2; floor.position.y = -1.5; scene.add(floor);
 
         const ceil = new THREE.Mesh(new THREE.PlaneGeometry(20, 40), rockMat);
         ceil.rotation.x = Math.PI/2; ceil.position.y = 5; scene.add(ceil);
 
-        // INFINITE GRASS
-        const grass = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), grassMat);
-        grass.rotation.x = -Math.PI/2; grass.position.set(-500, -1.52, 0); 
+        const grass = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), grassMat);
+        grass.rotation.x = -Math.PI/2; grass.position.set(-1000, -1.52, 0); 
         scene.add(grass);
         
-        const sun = new THREE.DirectionalLight(0xffffff, 1);
-        sun.position.set(-10, 20, 10); scene.add(sun);
+        // 2. SUN AND CLOUDS
+        const sunGeo = new THREE.SphereGeometry(10, 32, 32);
+        const sunMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        const sunSphere = new THREE.Mesh(sunGeo, sunMat);
+        sunSphere.position.set(-200, 150, -100);
+        scene.add(sunSphere);
 
-        // SEALED WALL SYSTEM
-        const wallBlockGeo = new THREE.BoxGeometry(4, 10, 40);
-        
-        // Right Wall (Solid Block)
-        const rightWall = new THREE.Mesh(wallBlockGeo, rockMat);
+        const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+        for(let i=0; i<40; i++) {
+            const cloud = new THREE.Group();
+            for(let j=0; j<3; j++) {
+                const part = new THREE.Mesh(new THREE.BoxGeometry(20, 10, 15), cloudMat);
+                part.position.x = j * 10;
+                cloud.add(part);
+            }
+            cloud.position.set(Math.random()*-1000 - 100, Math.random()*50 + 80, Math.random()*1000 - 500);
+            scene.add(cloud);
+        }
+
+        const worldLight = new THREE.DirectionalLight(0xffffff, 1);
+        worldLight.position.set(-1, 1, -0.5); scene.add(worldLight);
+        scene.add(new THREE.AmbientLight(0x444444));
+
+        // 3. CAVE WALLS
+        const rightWall = new THREE.Mesh(new THREE.BoxGeometry(4, 10, 40), rockMat);
         rightWall.position.set(11, 2, 0); scene.add(rightWall);
 
-        // Left Wall (Two blocks with a gap in the middle)
         const leftWallFront = new THREE.Mesh(new THREE.BoxGeometry(4, 10, 15), rockMat);
         leftWallFront.position.set(-11, 2, -12.5); scene.add(leftWallFront);
 
         const leftWallBack = new THREE.Mesh(new THREE.BoxGeometry(4, 10, 15), rockMat);
         leftWallBack.position.set(-11, 2, 12.5); scene.add(leftWallBack);
 
-        // Front and Back Ends (Solid)
-        const endWallGeo = new THREE.BoxGeometry(20, 10, 1);
-        const frontEnd = new THREE.Mesh(endWallGeo, rockMat);
+        const frontEnd = new THREE.Mesh(new THREE.BoxGeometry(20, 10, 1), rockMat);
         frontEnd.position.set(0, 2, -20); scene.add(frontEnd);
 
-        const backEnd = new THREE.Mesh(endWallGeo, rockMat);
+        const backEnd = new THREE.Mesh(new THREE.BoxGeometry(20, 10, 1), rockMat);
         backEnd.position.set(0, 2, 20); scene.add(backEnd);
 
-        // CHEST
+        // 4. PLAYER & CHEST
         const chest = new THREE.Group();
         const b = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.6, 0.7), new THREE.MeshStandardMaterial({color: 0x4A3728}));
         const l = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.3, 0.75), new THREE.MeshStandardMaterial({color: 0xD4AF37}));
         l.position.y = 0.4; chest.add(b); chest.add(l);
         chest.position.set(0, -1.2, -5); scene.add(chest);
 
-        const flashlight = new THREE.PointLight(0xffffff, 3, 20);
+        const flashlight = new THREE.PointLight(0xffffff, 3, 25);
         scene.add(flashlight);
 
         let keys = {};
@@ -102,7 +115,7 @@
             pitch = Math.max(-1.2, Math.min(1.2, pitch));
             camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
-            const spd = 0.18;
+            const spd = 0.22;
             let nextX = camera.position.x;
             let nextZ = camera.position.z;
 
@@ -111,25 +124,33 @@
             if (keys['KeyA']) { nextX -= Math.cos(yaw) * spd; nextZ += Math.sin(yaw) * spd; }
             if (keys['KeyD']) { nextX += Math.cos(yaw) * spd; nextZ -= Math.sin(yaw) * spd; }
 
-            // COLLISION
-            // Hole is between Z = -5 and Z = 5
+            // IMPROVED FREEDOM COLLISION
+            const isOutside = camera.position.x < -10;
             const inGap = (nextZ > -5 && nextZ < 5);
             
-            if (nextX < -8.8 && !inGap) nextX = -8.8; 
-            if (nextX > 8.8) nextX = 8.8;
-            if (nextZ > 19) nextZ = 19;
-            if (nextZ < -19) nextZ = -19;
+            if (!isOutside) {
+                // If inside, enforce cave boundaries
+                if (nextX < -8.8 && !inGap) nextX = -8.8; 
+                if (nextX > 8.8) nextX = 8.8;
+                if (nextZ > 19) nextZ = 19;
+                if (nextZ < -19) nextZ = -19;
+            } else {
+                // If outside, only block the BACK of the cave walls so you don't clip in
+                if (nextX > -9.5 && !inGap) nextX = -9.5;
+            }
 
             camera.position.x = nextX;
             camera.position.z = nextZ;
 
-            // Sky Logic
-            if (camera.position.x < -10) {
+            // Outside Visuals
+            if (isOutside) {
                 scene.background = new THREE.Color(0x87CEEB);
                 scene.fog.color = new THREE.Color(0x87CEEB);
+                scene.fog.far = 1000; // Clearer view outside
             } else {
                 scene.background = new THREE.Color(0x000000);
                 scene.fog.color = new THREE.Color(0x000000);
+                scene.fog.far = 35; // Cave vibes
             }
 
             flashlight.position.copy(camera.position);
