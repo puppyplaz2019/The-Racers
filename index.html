@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Cave - The Secret Exit</title>
+    <title>3D Cave - The Grass Exit Fix</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; }
         #ui { 
@@ -9,20 +9,26 @@
             color: #00ff00; font-family: monospace; pointer-events: none; 
             background: rgba(0,0,0,0.8); padding: 10px; border: 1px solid #0f0;
         }
+        #msg {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: gold; font-family: monospace; font-size: 30px; display: none;
+            text-shadow: 2px 2px #000;
+        }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h1>CAVE_EXPLORER_V8</h1>
-        <p>Find the hole in the left wall!</p>
+        <h1>CAVE_EXPLORER_V9</h1>
+        <p>WASD: Walk | Arrows: Look</p>
         <p id="dist">DISTANCE: ---</p>
     </div>
+    <div id="msg">✨ TREASURE CLAIMED! ✨</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
         const scene = new THREE.Scene();
-        scene.fog = new THREE.Fog(0x000000, 1, 25);
+        scene.fog = new THREE.Fog(0x000000, 1, 30);
         
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -32,66 +38,52 @@
         const rockMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
         const grassMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27 });
 
-        // 1. THE CAVE STRUCTURE
+        // 1. CAVE AND GRASS
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 40), rockMat);
         floor.rotation.x = -Math.PI/2; floor.position.y = -1.5; scene.add(floor);
 
         const ceil = new THREE.Mesh(new THREE.PlaneGeometry(20, 40), rockMat);
         ceil.rotation.x = Math.PI/2; ceil.position.y = 5; scene.add(ceil);
 
-        // 2. THE INFINITE GRASS (Outside the hole)
-        const grass = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), grassMat);
-        grass.rotation.x = -Math.PI/2;
-        grass.position.set(-100, -1.51, 0); // Just below cave floor to avoid flickering
+        const grass = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), grassMat);
+        grass.rotation.x = -Math.PI/2; grass.position.set(-1000, -1.51, 0); 
         scene.add(grass);
-        scene.add(new THREE.DirectionalLight(0xffffff, 0.5)); // Sunlight for outside
+        
+        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+        sun.position.set(-50, 50, 0); scene.add(sun);
 
-        // 3. ROUNDED WALLS (using columns to create a jagged look)
-        for(let i=0; i<12; i++) {
-            const zPos = (i * 4) - 20;
-            // Left Side (with a gap for the hole at z = -4)
-            if(zPos < -6 || zPos > -2) {
-                const colL = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 10, 6), rockMat);
-                colL.position.set(-10, 2, zPos);
-                scene.add(colL);
-            }
-            // Right Side
+        // 2. ONE HOLE WALL SYSTEM
+        for(let i=0; i<10; i++) {
+            const zPos = (i * 4) - 18;
+            // Right Wall (Solid)
             const colR = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 10, 6), rockMat);
-            colR.position.set(10, 2, zPos);
-            scene.add(colR);
+            colR.position.set(10, 2, zPos); scene.add(colR);
+
+            // Left Wall (Skip ONLY the middle for the hole)
+            if (zPos < -2 || zPos > 2) {
+                const colL = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 10, 6), rockMat);
+                colL.position.set(-10, 2, zPos); scene.add(colL);
+            }
         }
 
-        // 4. PEBBLES
-        for(let i=0; i<60; i++) {
-            const size = Math.random() * 0.15 + 0.05;
-            const pebble = new THREE.Mesh(new THREE.DodecahedronGeometry(size), rockMat);
-            pebble.position.set(Math.random()*16-8, -1.45, Math.random()*36-18);
-            pebble.rotation.set(Math.random(), Math.random(), Math.random());
-            scene.add(pebble);
+        // 3. PEBBLES & STALACTITES
+        for(let i=0; i<50; i++) {
+            const p = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1), rockMat);
+            p.position.set(Math.random()*16-8, -1.45, Math.random()*36-18); scene.add(p);
         }
 
-        // 5. STALACTITES
-        for(let i=0; i<30; i++) {
-            const h = Math.random() * 3 + 1;
-            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.3, h, 6), rockMat);
-            spike.position.set(Math.random()*16-8, 5-(h/2), Math.random()*36-18);
-            spike.rotation.x = Math.PI;
-            scene.add(spike);
-        }
-
-        // TREASURE CHEST
+        // 4. THE CHEST
         const chest = new THREE.Group();
         const b = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.6, 0.7), new THREE.MeshStandardMaterial({color: 0x4A3728}));
         const l = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.3, 0.75), new THREE.MeshStandardMaterial({color: 0xD4AF37}));
-        l.position.y = 0.4;
-        chest.add(b); chest.add(l);
-        chest.position.set(0, -1.2, -10);
-        scene.add(chest);
+        l.position.y = 0.4; chest.add(b); chest.add(l);
+        chest.position.set(0, -1.2, -5); scene.add(chest);
 
         const flashlight = new THREE.PointLight(0xffffff, 2.5, 20);
         scene.add(flashlight);
         scene.add(new THREE.AmbientLight(0x222222));
 
+        // 5. CONTROLS
         let keys = {};
         window.onkeydown = (e) => keys[e.code] = true;
         window.onkeyup = (e) => keys[e.code] = false;
@@ -118,14 +110,16 @@
             if (keys['KeyA']) { nextX -= Math.cos(yaw) * spd; nextZ += Math.sin(yaw) * spd; }
             if (keys['KeyD']) { nextX += Math.cos(yaw) * spd; nextZ -= Math.sin(yaw) * spd; }
 
-            // COLLISION WITH "HOLE" LOGIC
-            // If player is near the hole (Z between -6 and -2), let them pass X = -8
-            let canPassWall = (nextZ > -6 && nextZ < -2);
-
-            if (!canPassWall && nextX < -8.5) nextX = -8.5; // Left Wall
-            if (nextX > 8.5) nextX = 8.5;  // Right Wall
-            if (nextZ > 18) nextZ = 18;    // Front
-            if (nextZ < -18) nextZ = -18;  // Back
+            // IMPROVED COLLISION
+            // Only block X-axis if NOT in the hole zone
+            const inHoleZone = (nextZ > -3 && nextZ < 3);
+            
+            if (!inHoleZone || nextX > -8) { // If not in hole, or if inside the cave
+                if (nextX < -8.5) nextX = -8.5; // Block Left Wall
+            }
+            if (nextX > 8.5) nextX = 8.5;  // Block Right Wall
+            if (nextZ > 19) nextZ = 19;    // Block Front
+            if (nextZ < -19) nextZ = -19;  // Block Back
 
             camera.position.x = nextX;
             camera.position.z = nextZ;
@@ -133,10 +127,13 @@
             flashlight.position.copy(camera.position);
             const d = camera.position.distanceTo(chest.position);
             document.getElementById('dist').innerText = "DISTANCE: " + d.toFixed(1) + "m";
+
             if(d < 1.5) {
-                alert("✨ TREASURE CLAIMED!");
-                chest.position.set(Math.random()*14-7, -1.2, Math.random()*-30+10);
+                document.getElementById('msg').style.display = 'block';
+                setTimeout(() => { document.getElementById('msg').style.display = 'none'; }, 2000);
+                chest.position.set(Math.random()*14-7, -1.2, Math.random()*20-10);
             }
+
             renderer.render(scene, camera);
         }
         animate();
