@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Mountain Climber</title>
+    <title>3D Mountain & Natural Cave</title>
     <style>
         body { margin: 0; overflow: hidden; background: #87CEEB; }
         #ui { 
@@ -13,8 +13,8 @@
 </head>
 <body>
     <div id="ui">
-        <h1>MOUNTAIN_CLIMBER_V15</h1>
-        <p>Spawn: OUTSIDE | Goal: Climb the Mountain!</p>
+        <h1>EXPLORER_V16</h1>
+        <p>Natural Cave + Secret Mountain Room</p>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -27,55 +27,54 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        const rockMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+        const rockMat = new THREE.MeshStandardMaterial({ color: 0x333333, flatShading: true });
         const grassMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27 });
-        const mtMat = new THREE.MeshStandardMaterial({ color: 0x555566 });
+        const mtMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
+        const secretMat = new THREE.MeshStandardMaterial({ color: 0x663300 }); // Goldish-brown for secret room
 
-        // 1. THE WORLD
+        // 1. LANDSCAPE
         const grass = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000), grassMat);
         grass.rotation.x = -Math.PI/2; grass.position.y = -1.5; scene.add(grass);
 
-        // 2. THE CLIMBABLE MOUNTAIN (Layers)
+        // 2. THE NATURAL ARCH CAVE
+        // Creating a "Tube" and cutting it in half for a rounded floor/ceiling
+        const caveTube = new THREE.Mesh(
+            new THREE.CylinderGeometry(8, 8, 40, 12, 1, true, 0, Math.PI), 
+            rockMat
+        );
+        caveTube.rotation.z = Math.PI / 2;
+        caveTube.rotation.x = Math.PI;
+        caveTube.position.set(0, 3, 0); // Positioned at spawn area
+        scene.add(caveTube);
+
+        // Jagged Rocks around the entrance
+        for(let i=0; i<15; i++) {
+            const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(2 + Math.random()*2), rockMat);
+            const angle = (i / 15) * Math.PI;
+            rock.position.set(Math.cos(angle)*8, Math.sin(angle)*8 - 1, -20);
+            scene.add(rock);
+        }
+
+        // 3. CLIMBABLE MOUNTAIN
         const mtLayers = [];
-        for(let i=0; i<6; i++) {
-            const size = 150 - (i * 25);
+        const mtPos = {x: -300, z: -300};
+        for(let i=0; i<7; i++) {
+            const size = 180 - (i * 25);
             const layer = new THREE.Mesh(new THREE.BoxGeometry(size, 10, size), mtMat);
-            layer.position.set(-300, (i * 10) - 1.5, -300);
+            layer.position.set(mtPos.x, (i * 10) - 1.5, mtPos.z);
             scene.add(layer);
             mtLayers.push(layer);
         }
 
-        // 3. SUN AND CLOUDS
-        const sun = new THREE.Mesh(new THREE.SphereGeometry(30, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffff00 }));
-        sun.position.set(500, 500, -500); scene.add(sun);
+        // 4. SECRET ROOM (Inside the Mountain)
+        const secretRoom = new THREE.Mesh(new THREE.BoxGeometry(30, 8, 30), secretMat);
+        secretRoom.position.set(mtPos.x, 3.5, mtPos.z); // Hidden in the first/second layer
+        scene.add(secretRoom);
 
-        for(let i=0; i<80; i++) {
-            const cloud = new THREE.Mesh(new THREE.BoxGeometry(50, 10, 30), new THREE.MeshLambertMaterial({color:0xffffff}));
-            cloud.position.set(Math.random()*2000-1000, 200, Math.random()*2000-1000);
-            scene.add(cloud);
-        }
-
-        scene.add(new THREE.AmbientLight(0x777777));
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(1, 1, 1); scene.add(light);
-
-        // 4. THE CAVE (Still exists nearby)
-        const walls = [];
-        function makeWall(w, h, d, x, z) {
-            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), rockMat);
-            mesh.position.set(x, h/2 - 1.5, z);
-            scene.add(mesh);
-            walls.push(mesh);
-        }
-        makeWall(1, 10, 40, 10, 0); 
-        makeWall(1, 10, 15, -10, -12.5);
-        makeWall(1, 10, 15, -10, 12.5);
-        makeWall(20, 10, 1, 0, -20);
-        makeWall(20, 10, 1, 0, 20);
-
-        // 5. THE POLE (On top of mountain)
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 30), new THREE.MeshStandardMaterial({color: 0xff0000}));
-        pole.position.set(-300, 70, -300); scene.add(pole);
+        // 5. LIGHTING & DECOR
+        scene.add(new THREE.AmbientLight(0x666666));
+        const sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(500, 500, 200); scene.add(sun);
 
         // 6. MOVEMENT
         let keys = {};
@@ -83,9 +82,7 @@
         window.onkeyup = (e) => keys[e.code] = false;
 
         let yaw = 0, pitch = 0;
-        // SPAWN POINT: Outside the cave
-        camera.position.set(-30, 2, 0); 
-        yaw = -Math.PI/2; 
+        camera.position.set(0, 2, 30); // Start looking at the cave
 
         function animate() {
             requestAnimationFrame(animate);
@@ -97,43 +94,30 @@
             pitch = Math.max(-1.2, Math.min(1.2, pitch));
             camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
-            const spd = 0.6;
+            const spd = 0.7;
             let moveX = 0, moveZ = 0;
             if (keys['KeyW']) { moveX -= Math.sin(yaw) * spd; moveZ -= Math.cos(yaw) * spd; }
             if (keys['KeyS']) { moveX += Math.sin(yaw) * spd; moveZ += Math.cos(yaw) * spd; }
             if (keys['KeyA']) { moveX -= Math.cos(yaw) * spd; moveZ += Math.sin(yaw) * spd; }
             if (keys['KeyD']) { moveX += Math.cos(yaw) * spd; moveZ -= Math.sin(yaw) * spd; }
 
-            let nextX = camera.position.x + moveX;
-            let nextZ = camera.position.z + moveZ;
+            camera.position.x += moveX;
+            camera.position.z += moveZ;
 
-            // Wall Collision
-            let hitWall = false;
-            walls.forEach(w => {
-                if (new THREE.Box3().setFromObject(w).containsPoint(new THREE.Vector3(nextX, camera.position.y, nextZ))) hitWall = true;
-            });
-
-            if (!hitWall) {
-                camera.position.x = nextX;
-                camera.position.z = nextZ;
-            }
-
-            // MOUNTAIN CLIMBING LOGIC
-            let groundHeight = 1.5; // Default grass height
+            // DYNAMIC HEIGHT (Climbing)
+            let groundHeight = 2; 
             mtLayers.forEach(layer => {
                 const box = new THREE.Box3().setFromObject(layer);
-                // Check if player is standing over a layer
-                if (nextX > box.min.x && nextX < box.max.x && nextZ > box.min.z && nextZ < box.max.z) {
-                    groundHeight = layer.position.y + 7; // Stand on top of the block
+                if (camera.position.x > box.min.x && camera.position.x < box.max.x && 
+                    camera.position.z > box.min.z && camera.position.z < box.max.z) {
+                    groundHeight = layer.position.y + 7; 
                 }
             });
-
-            // Smoothly move the camera up/down to the new ground height
             camera.position.y += (groundHeight - camera.position.y) * 0.1;
 
-            // Sky Color Change if you go inside the cave
-            const isInside = (Math.abs(camera.position.x) < 10 && Math.abs(camera.position.z) < 20);
-            scene.background = new THREE.Color(isInside ? 0x000000 : 0x87CEEB);
+            // Visual Cave Darkening
+            const inCave = (Math.abs(camera.position.x) < 7 && Math.abs(camera.position.z) < 20);
+            scene.background = new THREE.Color(inCave ? 0x111111 : 0x87CEEB);
 
             renderer.render(scene, camera);
         }
