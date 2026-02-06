@@ -13,7 +13,7 @@
 </head>
 <body>
     <div id="ui">
-        <h1>EXPLORER_V22</h1>
+        <h1>EXPLORER_V23</h1>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -29,7 +29,7 @@
         const rockMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
         const floorMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
         const grassMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27 });
-        const mtMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
+        const mtMat = new THREE.MeshStandardMaterial({ color: 0x444444, transparent: true, opacity: 0.9 });
 
         // 1. LANDSCAPE
         const grass = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000), grassMat);
@@ -56,21 +56,21 @@
             scene.add(s);
         }
 
-        // 3. THE CONE MOUNTAIN
+        // 3. THE CONE MOUNTAIN (Visual Only)
         const mtPos = {x: -200, z: -200};
-        const mtRadius = 100;
-        const mtHeight = 150;
+        const mtRadius = 120;
+        const mtHeight = 100;
         
         const mountain = new THREE.Mesh(
-            new THREE.ConeGeometry(mtRadius, mtHeight, 8), 
+            new THREE.ConeGeometry(mtRadius, mtHeight, 16), 
             mtMat
         );
         mountain.position.set(mtPos.x, mtHeight/2 - 1.5, mtPos.z);
         scene.add(mountain);
 
-        // Hidden entrance visual
-        const entrance = new THREE.Mesh(new THREE.BoxGeometry(8, 12, 5), floorMat);
-        entrance.position.set(mtPos.x, 4, mtPos.z + 98);
+        // Entrance guide
+        const entrance = new THREE.Mesh(new THREE.BoxGeometry(10, 15, 2), floorMat);
+        entrance.position.set(mtPos.x, 5, mtPos.z + mtRadius - 2);
         scene.add(entrance);
 
         // 4. LIGHTING
@@ -95,53 +95,46 @@
             if (keys['ArrowDown']) pitch -= 0.04;
             camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
-            const spd = 0.8;
+            const spd = 0.9;
             let moveX = 0, moveZ = 0;
             if (keys['KeyW']) { moveX -= Math.sin(yaw) * spd; moveZ -= Math.cos(yaw) * spd; }
             if (keys['KeyS']) { moveX += Math.sin(yaw) * spd; moveZ += Math.cos(yaw) * spd; }
             if (keys['KeyA']) { moveX -= Math.cos(yaw) * spd; moveZ += Math.sin(yaw) * spd; }
             if (keys['KeyD']) { moveX += Math.cos(yaw) * spd; moveZ -= Math.sin(yaw) * spd; }
 
-            let nextX = camera.position.x + moveX;
-            let nextZ = camera.position.z + moveZ;
+            // Apply Move
+            camera.position.x += moveX;
+            camera.position.z += moveZ;
 
-            // Collision for Cave
-            let hitWall = false;
-            walls.forEach(w => {
-                const box = new THREE.Box3().setFromObject(w);
-                if (box.containsPoint(new THREE.Vector3(nextX, camera.position.y, nextZ))) hitWall = true;
-            });
-
-            if (!hitWall) {
-                camera.position.x = nextX;
-                camera.position.z = nextZ;
-            }
-
-            // SLOPE CLIMBING LOGIC
+            // NEW CLIMBING MATH
             const dx = camera.position.x - mtPos.x;
             const dz = camera.position.z - mtPos.z;
             const dist = Math.sqrt(dx*dx + dz*dz);
             
             let targetY = 2;
             
-            // Check if player is on the mountain slope
+            // If we are on the mountain
             if (dist < mtRadius) {
-                // Entrance Zone: If near the door, don't climb
-                const inDoorway = (camera.position.x > mtPos.x - 10 && camera.position.x < mtPos.x + 10 && camera.position.z > mtPos.z + 90);
-                
-                if (!inDoorway) {
-                    // Calculate height based on distance to center (Linear Slope)
-                    targetY = (1 - (dist / mtRadius)) * mtHeight;
+                // Check if we are trying to be "inside" (close to the center but on the ground)
+                const nearCenter = dist < 25;
+                const facingEntrance = (camera.position.z > mtPos.z + mtRadius - 20);
+
+                // If you are coming from the entrance or in the very middle, stay down
+                if (nearCenter || (facingEntrance && camera.position.y < 10)) {
+                    targetY = 2;
+                } else {
+                    // Otherwise, climb!
+                    targetY = (1 - (dist / mtRadius)) * mtHeight + 2;
                 }
             }
             
-            // Apply gravity/climb smoothly
+            // Smooth vertical movement
             camera.position.y += (targetY - camera.position.y) * 0.1;
 
-            // Visual Darkening
+            // Blackout logic for interior spaces
             const inCave = (camera.position.z < 0 && camera.position.z > -40 && Math.abs(camera.position.x) < 10);
-            const inMountain = (dist < 20); // Darken when at the very center of mountain
-            scene.background = new THREE.Color(inCave || inMountain ? 0x000000 : 0x87CEEB);
+            const hiddenInside = (dist < 20); 
+            scene.background = new THREE.Color(inCave || hiddenInside ? 0x000000 : 0x87CEEB);
 
             renderer.render(scene, camera);
         }
