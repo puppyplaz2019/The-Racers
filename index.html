@@ -1,17 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Treasure Grove</title>
+    <title>3D Treasure Grove V32</title>
     <style>
         body { margin: 0; overflow: hidden; background: #87CEEB; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #000; font-family: monospace; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 5px; pointer-events: none; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #000; font-family: monospace; background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; border: 2px solid #5d3a1a; pointer-events: none; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h1>TREASURE_HUNT_V31</h1>
-        <p>Find the 10 Glowing Chests!</p>
-        <p>WASD: Move | Arrows: Look</p>
+        <h2 style="margin:0">TREASURE_HUNT_V32</h2>
+        <p><b>GOAL:</b> Find 10 Golden Chests in the woods!</p>
+        <p><b>MOVE:</b> WASD | <b>LOOK:</b> Arrow Keys</p>
+        <p id="counter">Chests Found: 0/10</p>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
@@ -22,94 +23,111 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Materials
-        const grassMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27 });
+        // --- MATERIALS ---
         const woodMat = new THREE.MeshStandardMaterial({ color: 0x5d3a1a });
         const leafMat = new THREE.MeshStandardMaterial({ color: 0x1a3300 });
         const pathMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f });
-        const roofMat = new THREE.MeshStandardMaterial({ color: 0x6e2626 });
-        const waterMat = new THREE.MeshStandardMaterial({ color: 0x00aaff, transparent: true, opacity: 0.7 });
-        const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xaa8800 });
+        const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffaa00, emissiveIntensity: 0.5 });
+        const waterSurfaceMat = new THREE.MeshStandardMaterial({ color: 0x00ccff, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+        const waterDeepMat = new THREE.MeshStandardMaterial({ color: 0x004488, transparent: true, opacity: 0.4 });
 
-        // 1. GROUND
-        const grass = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), grassMat);
-        grass.rotation.x = -Math.PI/2; grass.position.y = -1.52; scene.add(grass);
+        // 1. GROUND & PATH
+        const grass = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.MeshStandardMaterial({ color: 0x2d5a27 }));
+        grass.rotation.x = -Math.PI/2; grass.position.y = -1.5; scene.add(grass);
 
-        const path = new THREE.Mesh(new THREE.PlaneGeometry(10, 200), pathMat);
-        path.rotation.x = -Math.PI/2; path.position.set(0, -1.51, -100); scene.add(path);
+        const path = new THREE.Mesh(new THREE.PlaneGeometry(12, 200), pathMat);
+        path.rotation.x = -Math.PI/2; path.position.set(0, -1.48, -100); scene.add(path);
 
-        // 2. THE CABIN
-        const cabinGroup = new THREE.Group();
-        cabinGroup.position.set(0, -1.5, -200);
-        scene.add(cabinGroup);
+        // 2. THE CABIN (Solid Logic)
+        const cabin = new THREE.Group();
+        cabin.position.set(0, -1.5, -200);
+        scene.add(cabin);
 
-        const lodgeBase = new THREE.Mesh(new THREE.BoxGeometry(30, 18, 25), woodMat);
-        lodgeBase.position.y = 9; cabinGroup.add(lodgeBase);
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x4d2902 });
+        // Main Body
+        const body = new THREE.Mesh(new THREE.BoxGeometry(30, 20, 25), wallMat);
+        body.position.y = 10; cabin.add(body);
+        // Roof
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(24, 15, 4), new THREE.MeshStandardMaterial({color: 0x330000}));
+        roof.position.y = 27.5; roof.rotation.y = Math.PI/4; cabin.add(roof);
+        // Visual Door
+        const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(7, 12, 1), new THREE.MeshStandardMaterial({color: 0x221100}));
+        doorFrame.position.set(0, 6, 12.6); cabin.add(doorFrame);
 
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(25, 12, 4), roofMat);
-        roof.position.y = 24; roof.rotation.y = Math.PI/4; cabinGroup.add(roof);
-
-        // Actual Door
-        const door = new THREE.Mesh(new THREE.BoxGeometry(6, 11, 1.5), new THREE.MeshStandardMaterial({color: 0x331100}));
-        door.position.set(0, 5.5, 12.6); cabinGroup.add(door);
-
-        // 3. WAVY POND
-        const waterGeo = new THREE.CircleGeometry(25, 64);
-        const waterSurface = new THREE.Mesh(waterGeo, waterMat);
+        // 3. LAYERED POND
+        const pondPos = new THREE.Vector3(0, -1.5, -280);
+        const waterGeo = new THREE.CircleGeometry(30, 64);
+        
+        // Surface Layer (Animated)
+        const waterSurface = new THREE.Mesh(waterGeo, waterSurfaceMat);
         waterSurface.rotation.x = -Math.PI/2;
-        waterSurface.position.set(0, -1.4, -270);
+        waterSurface.position.copy(pondPos).add(new THREE.Vector3(0, 0.2, 0));
         scene.add(waterSurface);
 
-        // 4. TREASURE CHESTS
-        const chests = [];
-        for(let i=0; i<10; i++) {
-            const chest = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 2), goldMat);
-            const lid = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.5, 2.2), goldMat);
-            lid.position.y = 1.2;
-            chest.add(body, lid);
-            
-            // Random scatter
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 60 + Math.random() * 300;
-            chest.position.set(Math.cos(angle)*dist, -0.5, Math.sin(angle)*dist - 100);
-            scene.add(chest);
-            chests.push(chest);
+        // Deep Layers
+        for(let i=1; i<=3; i++) {
+            const deep = new THREE.Mesh(new THREE.CircleGeometry(30 - i*2, 32), waterDeepMat);
+            deep.rotation.x = -Math.PI/2;
+            deep.position.copy(pondPos).add(new THREE.Vector3(0, -i*1, 0));
+            scene.add(deep);
         }
 
-        // 5. FOREST
-        for(let i=0; i<250; i++) {
-            const tx = Math.random() * 800 - 400;
-            const tz = Math.random() * 800 - 500;
-            if(Math.abs(tx) > 15 || (tz > 0 || tz < -320)) {
-                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 5), woodMat);
-                const leaves = new THREE.Mesh(new THREE.ConeGeometry(6, 15, 8), leafMat);
-                trunk.position.set(tx, 1, tz); leaves.position.set(tx, 8, tz);
-                scene.add(trunk, leaves);
+        // 4. TREASURE & FOREST
+        const chests = [];
+        let foundCount = 0;
+        for(let i=0; i<10; i++) {
+            const chest = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 2), goldMat);
+            const ang = Math.random() * Math.PI * 2;
+            const dist = 80 + Math.random() * 300;
+            chest.position.set(Math.cos(ang)*dist, -0.5, Math.sin(ang)*dist - 150);
+            scene.add(chest);
+            chests.push({ mesh: chest, found: false });
+        }
+
+        function createTree(x, z) {
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 6), woodMat);
+            const foliage = new THREE.Mesh(new THREE.ConeGeometry(7, 18, 8), leafMat);
+            trunk.position.y = 3; foliage.position.y = 12;
+            tree.add(trunk, foliage);
+            tree.position.set(x, -1.5, z);
+            scene.add(tree);
+        }
+
+        for(let i=0; i<300; i++) {
+            const tx = Math.random() * 1000 - 500;
+            const tz = Math.random() * 1000 - 600;
+            // Exclusion zones: path, cabin, pond
+            const distToPond = Math.sqrt(tx*tx + (tz+280)*(tz+280));
+            if (distToPond > 40 && Math.abs(tx) > 15 && (tz < -230 || tz > -170)) {
+                createTree(tx, tz);
             }
         }
 
-        // 6. LIGHTING
-        scene.add(new THREE.AmbientLight(0x666666));
+        // 5. LIGHTING
+        scene.add(new THREE.AmbientLight(0x404040));
         const sun = new THREE.DirectionalLight(0xffffff, 1);
-        sun.position.set(100, 200, 100); scene.add(sun);
+        sun.position.set(50, 100, 50); scene.add(sun);
 
-        // 7. CONTROLS & ANIMATION
+        // 6. CONTROLS & PHYSICS
         let keys = {};
         window.onkeydown = (e) => keys[e.code] = true;
         window.onkeyup = (e) => keys[e.code] = false;
         let yaw = 0, pitch = 0;
-        camera.position.set(0, 2, 0);
+        camera.position.set(0, 2, 20);
 
         function animate() {
             requestAnimationFrame(animate);
-            if (keys['ArrowLeft']) yaw += 0.04;
-            if (keys['ArrowRight']) yaw -= 0.04;
-            if (keys['ArrowUp']) pitch = Math.min(1.2, pitch + 0.04);
-            if (keys['ArrowDown']) pitch = Math.max(-1.2, pitch - 0.04);
+
+            // Camera Rotation
+            if (keys['ArrowLeft']) yaw += 0.05;
+            if (keys['ArrowRight']) yaw -= 0.05;
+            if (keys['ArrowUp']) pitch = Math.min(1.4, pitch + 0.04);
+            if (keys['ArrowDown']) pitch = Math.max(-1.4, pitch - 0.04);
             camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
-            const spd = 0.8;
+            // Movement
+            const spd = 0.9;
             let nextX = camera.position.x;
             let nextZ = camera.position.z;
 
@@ -118,27 +136,40 @@
             if (keys['KeyA']) { nextX -= Math.cos(yaw) * spd; nextZ += Math.sin(yaw) * spd; }
             if (keys['KeyD']) { nextX += Math.cos(yaw) * spd; nextZ -= Math.sin(yaw) * spd; }
 
-            // Wall Collision
-            const inCabin = (nextX > -15 && nextX < 15 && nextZ > -213 && nextZ < -187);
-            const inDoor = (Math.abs(nextX) < 3.5 && nextZ > -189);
-            if (!inCabin || inDoor) { camera.position.x = nextX; camera.position.z = nextZ; }
+            // COLLISION: Block Cabin Walls, allow Door
+            const inCabinArea = (nextX > -15 && nextX < 15 && nextZ > -213 && nextZ < -187);
+            const atDoor = (Math.abs(nextX) < 4 && nextZ > -189); // Safe door threshold
 
-            // Wave Effect
-            const time = Date.now() * 0.002;
-            const verts = waterSurface.geometry.attributes.position;
-            for (let i = 0; i < verts.count; i++) {
-                const x = verts.getX(i);
-                const y = verts.getY(i);
-                const wave = Math.sin(x * 0.2 + time) * 0.2 + Math.cos(y * 0.2 + time) * 0.2;
-                verts.setZ(i, wave);
+            if (!inCabinArea || atDoor) {
+                camera.position.x = nextX;
+                camera.position.z = nextZ;
             }
-            verts.needsUpdate = true;
 
-            // Chest Glow Pulse
+            // Treasure Collection
             chests.forEach(c => {
-                c.children[0].material.emissiveIntensity = 0.5 + Math.sin(time * 2) * 0.5;
-                c.rotation.y += 0.01; // Spin them a little!
+                if(!c.found) {
+                    const d = camera.position.distanceTo(c.mesh.position);
+                    if(d < 6) {
+                        c.found = true;
+                        c.mesh.visible = false;
+                        foundCount++;
+                        document.getElementById('counter').innerText = `Chests Found: ${foundCount}/10`;
+                    }
+                    c.mesh.rotation.y += 0.02;
+                    c.mesh.material.emissiveIntensity = 0.5 + Math.sin(Date.now()*0.005) * 0.5;
+                }
             });
+
+            // Wave Displacement
+            const time = Date.now() * 0.001;
+            const posAttr = waterSurface.geometry.attributes.position;
+            for(let i=0; i<posAttr.count; i++) {
+                const x = posAttr.getX(i);
+                const y = posAttr.getY(i);
+                const wave = Math.sin(x*0.1 + time) * 0.5 + Math.cos(y*0.1 + time) * 0.5;
+                posAttr.setZ(i, wave);
+            }
+            posAttr.needsUpdate = true;
 
             renderer.render(scene, camera);
         }
