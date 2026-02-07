@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Treasure Grove V32</title>
+    <title>3D Landscaped Estate</title>
     <style>
         body { margin: 0; overflow: hidden; background: #87CEEB; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #000; font-family: monospace; background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; border: 2px solid #5d3a1a; pointer-events: none; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #000; font-family: monospace; background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; pointer-events: none; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h2 style="margin:0">TREASURE_HUNT_V32</h2>
-        <p><b>GOAL:</b> Find 10 Golden Chests in the woods!</p>
-        <p><b>MOVE:</b> WASD | <b>LOOK:</b> Arrow Keys</p>
-        <p id="counter">Chests Found: 0/10</p>
+        <h2 style="margin:0">ESTATE_V33</h2>
+        <p>Chests Found: <span id="score">0</span>/10</p>
+        <p>WASD to Move | Arrows to Look</p>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
@@ -23,153 +22,139 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // --- MATERIALS ---
+        // Materials
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27 });
+        const rockMat = new THREE.MeshStandardMaterial({ color: 0x888888 });
+        const waterMat = new THREE.MeshStandardMaterial({ color: 0x00ccff, transparent: true, opacity: 0.6 });
+        const sandMat = new THREE.MeshStandardMaterial({ color: 0xc2b280 });
         const woodMat = new THREE.MeshStandardMaterial({ color: 0x5d3a1a });
         const leafMat = new THREE.MeshStandardMaterial({ color: 0x1a3300 });
-        const pathMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f });
-        const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffaa00, emissiveIntensity: 0.5 });
-        const waterSurfaceMat = new THREE.MeshStandardMaterial({ color: 0x00ccff, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
-        const waterDeepMat = new THREE.MeshStandardMaterial({ color: 0x004488, transparent: true, opacity: 0.4 });
 
-        // 1. GROUND & PATH
-        const grass = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.MeshStandardMaterial({ color: 0x2d5a27 }));
+        // 1. ENVIRONMENT
+        const grass = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), grassMat);
         grass.rotation.x = -Math.PI/2; grass.position.y = -1.5; scene.add(grass);
 
-        const path = new THREE.Mesh(new THREE.PlaneGeometry(12, 200), pathMat);
-        path.rotation.x = -Math.PI/2; path.position.set(0, -1.48, -100); scene.add(path);
+        // 2. THE LANDSCAPED POND
+        const pondGroup = new THREE.Group();
+        pondGroup.position.set(30, -1.5, -40);
+        scene.add(pondGroup);
 
-        // 2. THE CABIN (Solid Logic)
+        // Water and Sand Bottom
+        const bottom = new THREE.Mesh(new THREE.CircleGeometry(15, 32), sandMat);
+        bottom.rotation.x = -Math.PI/2; bottom.position.y = 0.05; pondGroup.add(bottom);
+
+        const water = new THREE.Mesh(new THREE.CircleGeometry(14.5, 32), waterMat);
+        water.rotation.x = -Math.PI/2; water.position.y = 0.8; pondGroup.add(water);
+
+        // Rugged Stone Rim
+        for(let i=0; i<60; i++) {
+            const angle = (i/60) * Math.PI * 2;
+            const r = 15 + Math.random() * 1.5;
+            const stone = new THREE.Mesh(
+                new THREE.BoxGeometry(2 + Math.random()*2, 1 + Math.random(), 2 + Math.random()*2),
+                rockMat
+            );
+            stone.position.set(Math.cos(angle)*r, 0.5, Math.sin(angle)*r);
+            stone.rotation.set(Math.random(), Math.random(), Math.random());
+            pondGroup.add(stone);
+        }
+
+        // Iris Clusters
+        for(let i=0; i<15; i++) {
+            const reed = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 4 + Math.random()*3), leafMat);
+            reed.position.set(-10 + Math.random()*5, 2, -10 + Math.random()*5);
+            pondGroup.add(reed);
+        }
+
+        // 3. HOLLOW CABIN (Built from parts so you can enter)
         const cabin = new THREE.Group();
-        cabin.position.set(0, -1.5, -200);
+        cabin.position.set(0, -1.5, -60);
         scene.add(cabin);
 
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x4d2902 });
-        // Main Body
-        const body = new THREE.Mesh(new THREE.BoxGeometry(30, 20, 25), wallMat);
-        body.position.y = 10; cabin.add(body);
-        // Roof
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(24, 15, 4), new THREE.MeshStandardMaterial({color: 0x330000}));
-        roof.position.y = 27.5; roof.rotation.y = Math.PI/4; cabin.add(roof);
-        // Visual Door
-        const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(7, 12, 1), new THREE.MeshStandardMaterial({color: 0x221100}));
-        doorFrame.position.set(0, 6, 12.6); cabin.add(doorFrame);
-
-        // 3. LAYERED POND
-        const pondPos = new THREE.Vector3(0, -1.5, -280);
-        const waterGeo = new THREE.CircleGeometry(30, 64);
-        
-        // Surface Layer (Animated)
-        const waterSurface = new THREE.Mesh(waterGeo, waterSurfaceMat);
-        waterSurface.rotation.x = -Math.PI/2;
-        waterSurface.position.copy(pondPos).add(new THREE.Vector3(0, 0.2, 0));
-        scene.add(waterSurface);
-
-        // Deep Layers
-        for(let i=1; i<=3; i++) {
-            const deep = new THREE.Mesh(new THREE.CircleGeometry(30 - i*2, 32), waterDeepMat);
-            deep.rotation.x = -Math.PI/2;
-            deep.position.copy(pondPos).add(new THREE.Vector3(0, -i*1, 0));
-            scene.add(deep);
+        function makeWall(w, h, d, x, y, z) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), woodMat);
+            mesh.position.set(x, y, z);
+            cabin.add(mesh);
+            return mesh;
         }
 
-        // 4. TREASURE & FOREST
+        const walls = [];
+        walls.push(makeWall(20, 15, 1, 0, 7.5, -10)); // Back
+        walls.push(makeWall(1, 15, 20, -10, 7.5, 0)); // Left
+        walls.push(makeWall(1, 15, 20, 10, 7.5, 0));  // Right
+        // Front wall with door hole (two pieces)
+        walls.push(makeWall(7, 15, 1, -6.5, 7.5, 10)); 
+        walls.push(makeWall(7, 15, 1, 6.5, 7.5, 10));
+        walls.push(makeWall(6, 4, 1, 0, 13, 10)); // Header above door
+
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(22, 1, 22), new THREE.MeshStandardMaterial({color:0x441111}));
+        roof.position.y = 15; cabin.add(roof);
+
+        // 4. TREASURE
         const chests = [];
-        let foundCount = 0;
+        let score = 0;
         for(let i=0; i<10; i++) {
-            const chest = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 2), goldMat);
-            const ang = Math.random() * Math.PI * 2;
-            const dist = 80 + Math.random() * 300;
-            chest.position.set(Math.cos(ang)*dist, -0.5, Math.sin(ang)*dist - 150);
+            const chest = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 1.5), new THREE.MeshStandardMaterial({color:0xffd700, emissive:0xffaa00}));
+            chest.position.set(Math.random()*400-200, -0.5, Math.random()*400-200);
             scene.add(chest);
-            chests.push({ mesh: chest, found: false });
-        }
-
-        function createTree(x, z) {
-            const tree = new THREE.Group();
-            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 6), woodMat);
-            const foliage = new THREE.Mesh(new THREE.ConeGeometry(7, 18, 8), leafMat);
-            trunk.position.y = 3; foliage.position.y = 12;
-            tree.add(trunk, foliage);
-            tree.position.set(x, -1.5, z);
-            scene.add(tree);
-        }
-
-        for(let i=0; i<300; i++) {
-            const tx = Math.random() * 1000 - 500;
-            const tz = Math.random() * 1000 - 600;
-            // Exclusion zones: path, cabin, pond
-            const distToPond = Math.sqrt(tx*tx + (tz+280)*(tz+280));
-            if (distToPond > 40 && Math.abs(tx) > 15 && (tz < -230 || tz > -170)) {
-                createTree(tx, tz);
-            }
+            chests.push(chest);
         }
 
         // 5. LIGHTING
-        scene.add(new THREE.AmbientLight(0x404040));
+        scene.add(new THREE.AmbientLight(0x777777));
         const sun = new THREE.DirectionalLight(0xffffff, 1);
-        sun.position.set(50, 100, 50); scene.add(sun);
+        sun.position.set(50, 50, 50); scene.add(sun);
 
-        // 6. CONTROLS & PHYSICS
+        // 6. CONTROLS
         let keys = {};
         window.onkeydown = (e) => keys[e.code] = true;
         window.onkeyup = (e) => keys[e.code] = false;
         let yaw = 0, pitch = 0;
-        camera.position.set(0, 2, 20);
+        camera.position.set(0, 2, 10);
 
         function animate() {
             requestAnimationFrame(animate);
 
-            // Camera Rotation
-            if (keys['ArrowLeft']) yaw += 0.05;
-            if (keys['ArrowRight']) yaw -= 0.05;
-            if (keys['ArrowUp']) pitch = Math.min(1.4, pitch + 0.04);
-            if (keys['ArrowDown']) pitch = Math.max(-1.4, pitch - 0.04);
+            if (keys['ArrowLeft']) yaw += 0.04;
+            if (keys['ArrowRight']) yaw -= 0.04;
+            if (keys['ArrowUp']) pitch += 0.04;
+            if (keys['ArrowDown']) pitch -= 0.04;
             camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
-            // Movement
-            const spd = 0.9;
-            let nextX = camera.position.x;
-            let nextZ = camera.position.z;
+            const spd = 0.6;
+            let moveX = 0, moveZ = 0;
+            if (keys['KeyW']) { moveX -= Math.sin(yaw) * spd; moveZ -= Math.cos(yaw) * spd; }
+            if (keys['KeyS']) { moveX += Math.sin(yaw) * spd; moveZ += Math.cos(yaw) * spd; }
+            if (keys['KeyA']) { moveX -= Math.cos(yaw) * spd; moveZ += Math.sin(yaw) * spd; }
+            if (keys['KeyD']) { moveX += Math.cos(yaw) * spd; moveZ -= Math.sin(yaw) * spd; }
 
-            if (keys['KeyW']) { nextX -= Math.sin(yaw) * spd; nextZ -= Math.cos(yaw) * spd; }
-            if (keys['KeyS']) { nextX += Math.sin(yaw) * spd; nextZ += Math.cos(yaw) * spd; }
-            if (keys['KeyA']) { nextX -= Math.cos(yaw) * spd; nextZ += Math.sin(yaw) * spd; }
-            if (keys['KeyD']) { nextX += Math.cos(yaw) * spd; nextZ -= Math.sin(yaw) * spd; }
+            // Simple Collision
+            let nextX = camera.position.x + moveX;
+            let nextZ = camera.position.z + moveZ;
+            
+            // Wall Collision Logic
+            let hit = false;
+            walls.forEach(w => {
+                const b = new THREE.Box3().setFromObject(w);
+                if(b.containsPoint(new THREE.Vector3(nextX, 2, nextZ))) hit = true;
+            });
 
-            // COLLISION: Block Cabin Walls, allow Door
-            const inCabinArea = (nextX > -15 && nextX < 15 && nextZ > -213 && nextZ < -187);
-            const atDoor = (Math.abs(nextX) < 4 && nextZ > -189); // Safe door threshold
-
-            if (!inCabinArea || atDoor) {
+            if(!hit) {
                 camera.position.x = nextX;
                 camera.position.z = nextZ;
             }
 
-            // Treasure Collection
+            // Chest Collection
             chests.forEach(c => {
-                if(!c.found) {
-                    const d = camera.position.distanceTo(c.mesh.position);
-                    if(d < 6) {
-                        c.found = true;
-                        c.mesh.visible = false;
-                        foundCount++;
-                        document.getElementById('counter').innerText = `Chests Found: ${foundCount}/10`;
-                    }
-                    c.mesh.rotation.y += 0.02;
-                    c.mesh.material.emissiveIntensity = 0.5 + Math.sin(Date.now()*0.005) * 0.5;
+                if(c.visible && camera.position.distanceTo(c.position) < 4) {
+                    c.visible = false;
+                    score++;
+                    document.getElementById('score').innerText = score;
                 }
             });
 
-            // Wave Displacement
-            const time = Date.now() * 0.001;
-            const posAttr = waterSurface.geometry.attributes.position;
-            for(let i=0; i<posAttr.count; i++) {
-                const x = posAttr.getX(i);
-                const y = posAttr.getY(i);
-                const wave = Math.sin(x*0.1 + time) * 0.5 + Math.cos(y*0.1 + time) * 0.5;
-                posAttr.setZ(i, wave);
-            }
-            posAttr.needsUpdate = true;
+            // Water Ripple
+            water.position.y = 0.8 + Math.sin(Date.now()*0.002)*0.1;
 
             renderer.render(scene, camera);
         }
