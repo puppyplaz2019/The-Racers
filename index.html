@@ -1,284 +1,363 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Estate V51 - Let There Be Light</title>
+    <title>3D Estate V52 - Stable Build</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #87CEEB; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #fff; font-family: monospace; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; pointer-events: none; border: 2px solid #fff; width: 300px; }
-        #interaction-msg { color: cyan; font-weight: bold; display: none; margin-top: 10px; text-shadow: 1px 1px 0 #000; }
-        #pause-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; color: white; align-items: center; justify-content: center; flex-direction: column; z-index: 10; font-family: sans-serif; }
-        
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
-        h2 { margin-top: 0; text-decoration: underline; color: gold; }
+        body { margin: 0; overflow: hidden; background: #000; }
+        #ui { position: absolute; top: 10px; left: 10px; color: white; font-family: monospace; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; pointer-events: none; border: 1px solid white; }
+        #interaction { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: cyan; font-family: sans-serif; font-weight: bold; text-shadow: 2px 2px 0 #000; display: none; pointer-events: none; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h2>ESTATE V51</h2>
-        <div class="stat-row"><span>Time:</span> <span id="time-display">Day</span></div>
-        <div class="stat-row"><span>Weather:</span> <span id="weather-display">Clear</span></div>
-        <div class="stat-row"><span>Mode:</span> <span id="mode-display" style="color:yellow">WALKING</span></div>
-        <hr>
-        <p><b>[WASD]</b> Move | <b>[Space]</b> Fly/Jump</p>
-        <p><b>[Shift]</b> Down (Flying)</p>
-        <p><b>[B]</b> Build | <b>[E]</b> Drive/Interact</p>
-        <p><b>[P]</b> Pause</p>
-        <div id="interaction-msg"></div>
+        <h2>ESTATE V52</h2>
+        <p><b>WASD</b> Move | <b>SPACE</b> Jump/Fly</p>
+        <p><b>E</b> Drive Car | <b>B</b> Build Mode</p>
+        <p><b>P</b> Pause</p>
+        <p id="debug">Status: Running</p>
     </div>
-
-    <div id="pause-menu">
-        <h1>PAUSED</h1>
-        <p>Press 'P' to Resume</p>
-    </div>
+    <div id="interaction">PRESS 'E' TO INTERACT</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // --- CONFIGURATION ---
-        // We start dayTime at 0.5 (Noon) to ensure visibility immediately.
-        let dayTime = 0.5; 
-        
+        // --- GLOBAL VARIABLES ---
         let scene, camera, renderer;
-        let keys = {}, mouse = new THREE.Vector2();
-        let isPaused = false, isFlying = false, isJumping = false, isDriving = false, buildMode = false;
-        let vy = 0, pitch = 0, yaw = 0;
+        let car, sunLight, sunMesh;
+        let keys = {};
+        let walls = []; 
+        let interactables = [];
+        let particles = [];
         
-        // Game Objects
-        const walls = [], groundObjects = [], interactables = [];
-        let car, pet, sunLight, sunMesh, rainSystem;
-        let weather = 'clear'; 
+        // State
+        let isDriving = false;
+        let isFlying = false;
+        let isPaused = false;
+        let buildMode = false;
+        let vy = 0; // Vertical velocity
+        let dayTime = 0.5; // Start at Noon
+        let weather = "clear";
+        let rainSystem;
 
+        // Materials
         const mats = {
             grass: new THREE.MeshStandardMaterial({ color: 0x2d5a27 }),
             sand: new THREE.MeshStandardMaterial({ color: 0xe6c288 }),
             wood: new THREE.MeshStandardMaterial({ color: 0x5d3a1a }),
             leaf: new THREE.MeshStandardMaterial({ color: 0x1a4a15 }),
-            water: new THREE.MeshStandardMaterial({ color: 0x00ccff, transparent: true, opacity: 0.6 }),
-            brick: new THREE.MeshStandardMaterial({ color: 0x8a4b26 }),
+            water: new THREE.MeshStandardMaterial({ color: 0x00ccff, transparent: true, opacity: 0.7 }),
+            brick: new THREE.MeshStandardMaterial({ color: 0xcc5522 }),
             car: new THREE.MeshStandardMaterial({ color: 0xff0000 }),
-            ghost: new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true, transparent: true, opacity: 0.5 })
+            road: new THREE.MeshStandardMaterial({ color: 0x333333 })
         };
 
-        window.onload = init;
-
+        // --- INIT ---
         function init() {
-            // 1. SCENE SETUP
+            // 1. Scene & Camera
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 20, 900);
-            
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 3000);
-            camera.position.set(0, 2, 20);
+            scene.fog = new THREE.Fog(0x87CEEB, 20, 800);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
+            // SAFETY: Start high up looking down
+            camera.position.set(0, 30, 50);
+            camera.lookAt(0, 0, 0);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
 
-            // 2. LIGHTING
-            // Increased Ambient light so night isn't pitch black
-            scene.add(new THREE.AmbientLight(0x666666)); 
-            
-            sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-            sunLight.position.set(100, 300, 100);
+            // 2. Lighting
+            const ambient = new THREE.AmbientLight(0x888888); // Bright ambient
+            scene.add(ambient);
+
+            sunLight = new THREE.DirectionalLight(0xffffff, 1);
+            sunLight.position.set(100, 200, 100);
             sunLight.castShadow = true;
-            sunLight.shadow.mapSize.width = 2048; 
-            sunLight.shadow.mapSize.height = 2048;
-            sunLight.shadow.camera.left = -500; sunLight.shadow.camera.right = 500;
-            sunLight.shadow.camera.top = 500; sunLight.shadow.camera.bottom = -500;
+            sunLight.shadow.camera.left = -200; sunLight.shadow.camera.right = 200;
+            sunLight.shadow.camera.top = 200; sunLight.shadow.camera.bottom = -200;
             scene.add(sunLight);
 
-            // Sun Visual
             sunMesh = new THREE.Mesh(new THREE.SphereGeometry(20), new THREE.MeshBasicMaterial({color: 0xffff00}));
             scene.add(sunMesh);
 
-            // 3. GROUND
+            // 3. Ground (Forest & Desert)
             const grass = new THREE.Mesh(new THREE.PlaneGeometry(1000, 2000), mats.grass);
-            grass.rotation.x = -Math.PI/2; grass.position.set(-500, -1.5, 0); grass.receiveShadow = true;
-            scene.add(grass); groundObjects.push(grass);
+            grass.rotation.x = -Math.PI/2; 
+            grass.position.set(-500, -0.1, 0); 
+            grass.receiveShadow = true;
+            scene.add(grass);
 
             const sand = new THREE.Mesh(new THREE.PlaneGeometry(1000, 2000), mats.sand);
-            sand.rotation.x = -Math.PI/2; sand.position.set(500, -1.4, 0); sand.receiveShadow = true;
-            scene.add(sand); groundObjects.push(sand);
+            sand.rotation.x = -Math.PI/2; 
+            sand.position.set(500, 0, 0); 
+            sand.receiveShadow = true;
+            scene.add(sand);
 
-            // 4. GENERATE WORLD
-            generateForest();
-            generateDesert();
-            generateVillage();
-            createPond();
+            // 4. Content
+            createVillage();
+            createForest();
+            createDesert();
             createCar();
-            createPet();
+            createPond();
             createNPCs();
 
-            // 5. LISTENERS
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth/window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+            // 5. Input
+            document.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if(e.code === 'KeyP') isPaused = !isPaused;
+                if(e.code === 'KeyE') handleInteract();
+                if(e.code === 'KeyB') {
+                    buildMode = !buildMode;
+                    document.getElementById('debug').innerText = buildMode ? "Mode: BUILDING" : "Mode: WALKING";
+                }
+                if(e.code === 'Space' && !isDriving) {
+                    if(keys['ShiftLeft']) { isFlying = !isFlying; vy = 0; } // Shift+Space to toggle fly
+                    else if(!isFlying && camera.position.y <= 3) { vy = 0.5; } // Jump
+                }
             });
-            window.addEventListener('keydown', onKeyDown);
-            window.addEventListener('keyup', (e) => keys[e.code] = false);
-            window.addEventListener('mousedown', onClick);
+            document.addEventListener('keyup', (e) => keys[e.code] = false);
+            document.addEventListener('mousedown', handleClick);
 
+            // Start Loop
             animate();
         }
 
-        function generateForest() {
-            for(let i=0; i<60; i++) {
-                const x = Math.random() * -450 - 20;
-                const z = Math.random() * 800 - 400;
+        // --- CONTENT CREATION ---
+        function createVillage() {
+            // Simple House Function
+            function makeHouse(x, z) {
+                const house = new THREE.Group();
+                const body = new THREE.Mesh(new THREE.BoxGeometry(15, 10, 15), mats.brick);
+                body.position.y = 5; body.castShadow = true;
+                const roof = new THREE.Mesh(new THREE.ConeGeometry(12, 6, 4), mats.wood);
+                roof.position.y = 13; roof.rotation.y = Math.PI/4;
+                
+                // Interior items (visible through walls glitch technically, but simple for now)
+                const table = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 4), mats.wood);
+                table.position.set(0, 1, 0);
+                
+                house.add(body, roof, table);
+                house.position.set(x, 0, z);
+                scene.add(house);
+                walls.push(new THREE.Box3().setFromObject(body));
+            }
+            makeHouse(-40, -40);
+            makeHouse(-80, -10);
+            makeHouse(-40, 30);
+        }
+
+        function createForest() {
+            for(let i=0; i<50; i++) {
+                const x = Math.random() * -400 - 50;
+                const z = Math.random() * 600 - 300;
                 const tree = new THREE.Group();
-                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 6), mats.wood);
-                trunk.position.y = 3; trunk.castShadow = true;
-                const top = new THREE.Mesh(new THREE.ConeGeometry(4, 8, 8), mats.leaf);
-                top.position.y = 7; top.castShadow = true;
-                tree.add(trunk, top);
-                tree.position.set(x, -1.5, z);
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 5), mats.wood);
+                trunk.position.y = 2.5;
+                const leaves = new THREE.Mesh(new THREE.DodecahedronGeometry(4), mats.leaf);
+                leaves.position.y = 6;
+                tree.add(trunk, leaves);
+                tree.position.set(x, 0, z);
                 scene.add(tree);
                 walls.push(new THREE.Box3().setFromObject(trunk));
             }
         }
 
-        function generateDesert() {
-            for(let i=0; i<40; i++) {
-                const x = Math.random() * 450 + 50;
-                const z = Math.random() * 800 - 400;
-                const cactus = new THREE.Group();
-                const body = new THREE.Mesh(new THREE.BoxGeometry(1.5, 7, 1.5), mats.leaf);
-                body.position.y = 3.5;
-                const arm = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 1), mats.leaf);
-                arm.position.set(1, 4, 0);
-                cactus.add(body, arm);
-                cactus.position.set(x, -1.5, z);
+        function createDesert() {
+            for(let i=0; i<30; i++) {
+                const x = Math.random() * 400 + 50;
+                const z = Math.random() * 600 - 300;
+                const cactus = new THREE.Mesh(new THREE.BoxGeometry(2, 8, 2), mats.leaf);
+                cactus.position.set(x, 4, z);
                 scene.add(cactus);
-                walls.push(new THREE.Box3().setFromObject(body));
+                walls.push(new THREE.Box3().setFromObject(cactus));
             }
-        }
-
-        function generateVillage() {
-            createHouse(-50, 0, -50);
-            createHouse(-90, 0, -10);
-            createHouse(-50, 0, 30);
-            
-            // Streetlight
-            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 8), new THREE.MeshStandardMaterial({color:0x333333}));
-            pole.position.set(-30, 2.5, 0);
-            const bulb = new THREE.Mesh(new THREE.SphereGeometry(1), new THREE.MeshBasicMaterial({color:0xffffaa}));
-            bulb.position.y = 4; pole.add(bulb);
-            scene.add(pole);
-            // Light source for streetlight
-            const pl = new THREE.PointLight(0xffffaa, 0.5, 20);
-            pl.position.set(-30, 6, 0); scene.add(pl);
-        }
-
-        function createHouse(x, y, z) {
-            const grp = new THREE.Group();
-            const w = 15, h = 8, d = 15;
-            const house = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mats.brick);
-            house.position.y = h/2; house.castShadow = true;
-            const roof = new THREE.Mesh(new THREE.ConeGeometry(12, 6, 4), mats.wood);
-            roof.position.y = h + 3; roof.rotation.y = Math.PI/4;
-            
-            // Furniture
-            const table = new THREE.Mesh(new THREE.CylinderGeometry(3,3,2), mats.wood);
-            table.position.set(0, 1, 0);
-            const chair = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), mats.wood);
-            chair.position.set(4, 1, 0);
-
-            grp.add(house, roof, table, chair);
-            grp.position.set(x, -1.5, z);
-            scene.add(grp);
-            walls.push(new THREE.Box3().setFromObject(house));
-        }
-
-        function createPond() {
-            const pondPos = {x: 45, z: -45};
-            const water = new THREE.Mesh(new THREE.CircleGeometry(18, 32), mats.water);
-            water.rotation.x = -Math.PI/2; water.position.set(pondPos.x, -1.4, pondPos.z);
-            scene.add(water);
-
-            // Fountain logic handled in animate
-            const particleCount = 150;
-            const geom = new THREE.BufferGeometry();
-            const pos = new Float32Array(particleCount * 3);
-            const vels = [];
-            for(let i=0; i<particleCount; i++) {
-                pos[i*3] = pondPos.x; pos[i*3+1] = -1.4; pos[i*3+2] = pondPos.z;
-                vels.push({ x: (Math.random()-0.5)*0.2, y: Math.random()*0.5 + 0.3, z: (Math.random()-0.5)*0.2 });
-            }
-            geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            const particles = new THREE.Points(geom, new THREE.PointsMaterial({color:0xffffff, size:0.6}));
-            particles.userData = { vels: vels, origin: pondPos };
-            scene.add(particles);
-            interactables.push({ type: 'fountain', mesh: particles });
         }
 
         function createCar() {
             car = new THREE.Group();
             const body = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 7), mats.car);
-            body.position.y = 1; body.castShadow = true;
-            const wheels = [];
-            for(let i=0; i<4; i++) {
-                const w = new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,0.6), new THREE.MeshStandardMaterial({color:0x111111}));
-                w.rotation.z = Math.PI/2;
-                w.position.set((i%2===0?2.1:-2.1), 0.6, (i<2?2:-2));
-                car.add(w);
-            }
+            body.position.y = 1.5; body.castShadow = true;
             car.add(body);
-            car.position.set(10, -1.5, 10);
+            // Wheels
+            const wGeo = new THREE.CylinderGeometry(0.6, 0.6, 1);
+            const wMat = new THREE.MeshBasicMaterial({color:0x000000});
+            [[-2, 2], [2, 2], [-2, -2], [2, -2]].forEach(pos => {
+                const w = new THREE.Mesh(wGeo, wMat);
+                w.rotation.z = Math.PI/2;
+                w.position.set(pos[0], 0.6, pos[1]);
+                car.add(w);
+            });
+            car.position.set(10, 0, 10);
             scene.add(car);
-            walls.push(new THREE.Box3().setFromObject(body));
         }
 
-        function createPet() {
-            const geom = new THREE.SphereGeometry(0.4, 16, 16);
-            const mat = new THREE.MeshBasicMaterial({color: 0x00ffff});
-            pet = new THREE.Mesh(geom, mat);
-            scene.add(pet);
-            const light = new THREE.PointLight(0x00ffff, 1, 15);
-            pet.add(light);
+        function createPond() {
+            const pond = new THREE.Mesh(new THREE.CircleGeometry(20, 32), mats.water);
+            pond.rotation.x = -Math.PI/2;
+            pond.position.set(45, 0.1, -45);
+            scene.add(pond);
+            
+            // Fountain particles
+            const geom = new THREE.BufferGeometry();
+            const pos = new Float32Array(300); // 100 particles * 3
+            geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            const part = new THREE.Points(geom, new THREE.PointsMaterial({color: 0xffffff, size: 0.5}));
+            part.position.set(45, 0, -45);
+            scene.add(part);
+            particles.push({mesh: part, type: 'fountain'});
         }
 
         function createNPCs() {
-            const data = [
-                {n: "Builder Bob", t: "Press B to build a house!", x: -40, z: -40, c: 0x0000ff},
-                {n: "Racer Rex", t: "The red car is fast!", x: 15, z: 15, c: 0xffaa00}
-            ];
-            data.forEach(d => {
-                const m = new THREE.Mesh(new THREE.CapsuleGeometry(1, 3, 4), new THREE.MeshStandardMaterial({color: d.c}));
-                m.position.set(d.x, 0, d.z); m.castShadow = true;
-                scene.add(m);
-                walls.push(new THREE.Box3().setFromObject(m));
-                interactables.push({ type: 'npc', mesh: m, name: d.n, text: d.t });
+            const npc = new THREE.Mesh(new THREE.CapsuleGeometry(1, 3, 4), new THREE.MeshStandardMaterial({color: 0x0000ff}));
+            npc.position.set(-20, 1.5, -20);
+            scene.add(npc);
+            interactables.push({mesh: npc, msg: "Villager: Welcome to Estate V52!"});
+            walls.push(new THREE.Box3().setFromObject(npc));
+        }
+
+        // --- GAME LOGIC ---
+
+        function handleInteract() {
+            if(isDriving) {
+                isDriving = false;
+                camera.position.y = 5; // Get out
+                camera.position.x += 5;
+                return;
+            }
+            if(camera.position.distanceTo(car.position) < 8) {
+                isDriving = true;
+                buildMode = false;
+            }
+        }
+
+        function handleClick(e) {
+            if(!buildMode || isPaused) return;
+            // Build simple block in front of camera
+            const box = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), mats.brick);
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            box.position.copy(camera.position).add(dir.multiplyScalar(10));
+            box.position.y = 1;
+            scene.add(box);
+            walls.push(new THREE.Box3().setFromObject(box));
+        }
+
+        function updateEnvironment() {
+            // Day/Night
+            dayTime += 0.0005;
+            if(dayTime > 1) dayTime = 0;
+            const r = 300;
+            const ang = (dayTime - 0.5) * Math.PI * 2;
+            sunMesh.position.set(Math.cos(ang)*r, Math.sin(ang)*r, 0);
+            sunLight.position.copy(sunMesh.position);
+            
+            if(dayTime > 0.2 && dayTime < 0.8) {
+                scene.background.setHex(0x87CEEB); 
+                scene.fog.color.setHex(0x87CEEB);
+            } else {
+                scene.background.setHex(0x111122);
+                scene.fog.color.setHex(0x111122);
+            }
+
+            // Fountain Animation
+            particles.forEach(p => {
+                if(p.type === 'fountain') {
+                    const pos = p.mesh.geometry.attributes.position.array;
+                    for(let i=0; i<pos.length; i+=3) {
+                        if(pos[i+1] <= 0) {
+                            pos[i] = (Math.random()-0.5)*2;
+                            pos[i+1] = Math.random()*8; // Reset height
+                            pos[i+2] = (Math.random()-0.5)*2;
+                        }
+                        pos[i+1] -= 0.1; // Gravity
+                    }
+                    p.mesh.geometry.attributes.position.needsUpdate = true;
+                }
             });
         }
 
-        function createRain() {
-            if(rainSystem) return;
-            const cnt = 1500;
-            const geom = new THREE.BufferGeometry();
-            const pos = new Float32Array(cnt*3);
-            for(let i=0; i<cnt; i++) {
-                pos[i*3] = (Math.random()-0.5)*200;
-                pos[i*3+1] = Math.random()*80;
-                pos[i*3+2] = (Math.random()-0.5)*200;
-            }
-            geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            rainSystem = new THREE.Points(geom, new THREE.PointsMaterial({color:0xaaaaaa, size:0.3, transparent:true}));
-            scene.add(rainSystem);
-        }
-
-        // --- INPUT & LOGIC ---
-        function onKeyDown(e) {
-            if(e.key === 'p') {
-                isPaused = !isPaused;
-                document.getElementById('pause-menu').style.display = isPaused ? 'flex' : 'none';
-            }
+        function animate() {
+            requestAnimationFrame(animate);
             if(isPaused) return;
 
-            if(e.code === 'KeyB') {
-                buildMode = !buildMode;
-                document.getElementById('mode-display').innerText = buildMode ? "BUILDING" : "WALKING";
-                document.getElementById('mode-display').style.color = buildMode ? "lime" : "yellow";
+            updateEnvironment();
+
+            // Interactions
+            let nearInt = false;
+            interactables.forEach(i => {
+                if(camera.position.distanceTo(i.mesh.position) < 5) {
+                    document.getElementById('interaction').style.display = 'block';
+                    document.getElementById('interaction').innerText = i.msg;
+                    nearInt = true;
+                }
+            });
+            if(camera.position.distanceTo(car.position) < 8 && !isDriving) {
+                document.getElementById('interaction').style.display = 'block';
+                document.getElementById('interaction').innerText = "PRESS 'E' TO DRIVE";
+                nearInt = true;
             }
-            if(e.code === 'KeyE') interact();
-            if(e.code === 'Space')
+            if(!nearInt) document.getElementById('interaction').style.display = 'none';
+
+            // MOVEMENT
+            const speed = isDriving ? 2.0 : (keys['ShiftLeft'] ? 1.0 : 0.4);
+            const rotSpeed = 0.04;
+
+            if(keys['ArrowLeft']) camera.rotation.y += rotSpeed;
+            if(keys['ArrowRight']) camera.rotation.y -= rotSpeed;
+            
+            // Calc Forward Vector
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            dir.y = 0; dir.normalize();
+            
+            // Calc Side Vector
+            const side = new THREE.Vector3();
+            side.crossVectors(camera.up, dir).normalize();
+
+            let dx = 0, dz = 0;
+            if(keys['KeyW']) { dx += dir.x; dz += dir.z; }
+            if(keys['KeyS']) { dx -= dir.x; dz -= dir.z; }
+            if(keys['KeyA']) { dx += side.x; dz += side.z; }
+            if(keys['KeyD']) { dx -= side.x; dz -= side.z; }
+
+            const nextX = (isDriving ? car.position.x : camera.position.x) + dx * speed;
+            const nextZ = (isDriving ? car.position.z : camera.position.z) + dz * speed;
+
+            // Collision (Simple)
+            let blocked = false;
+            if(!isDriving && !isFlying) {
+                const test = new THREE.Vector3(nextX, 2, nextZ);
+                walls.forEach(w => { if(w.containsPoint(test)) blocked = true; });
+            }
+
+            if(!blocked) {
+                if(isDriving) {
+                    car.position.x = nextX; car.position.z = nextZ;
+                    car.rotation.y = camera.rotation.y + Math.PI; // Car faces cam
+                    // Cam follows car
+                    camera.position.set(car.position.x - dir.x*10, car.position.y+5, car.position.z - dir.z*10);
+                } else {
+                    camera.position.x = nextX; camera.position.z = nextZ;
+                }
+            }
+
+            // Gravity
+            if(!isDriving && !isFlying) {
+                camera.position.y += vy;
+                vy -= 0.03;
+                if(camera.position.y <= 2) { camera.position.y = 2; vy = 0; }
+            } else if(isFlying) {
+                 if(keys['Space']) camera.position.y += 0.5;
+                 if(keys['ShiftLeft']) camera.position.y -= 0.5;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Run
+        init();
+
+    </script>
+</body>
+</html>
