@@ -1,20 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Tangible Estate</title>
+    <title>3D Estate V35</title>
     <style>
         body { margin: 0; overflow: hidden; background: #87CEEB; }
         #ui { position: absolute; top: 10px; left: 10px; color: #000; font-family: monospace; background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; pointer-events: none; border: 2px solid #2d5a27; }
-        #win { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: gold; font-family: 'Arial Black', sans-serif; font-size: 50px; display: none; text-shadow: 2px 2px #000; }
+        #win { position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); color: gold; font-family: 'Arial Black', sans-serif; font-size: 40px; display: none; text-shadow: 2px 2px #000; text-align: center; }
+        button { pointer-events: auto; padding: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h2 style="margin:0">ESTATE_V34</h2>
+        <h2 style="margin:0">ESTATE_V35</h2>
         <p>Chests Found: <span id="score">0</span>/10</p>
-        <p><b>Solid World:</b> Everything has collision!</p>
+        <p><b>FIXED:</b> Roof, Leaves, & Pond Physics</p>
     </div>
-    <div id="win">YOU FOUND IT ALL!</div>
+    <div id="win">
+        YOU FOUND IT ALL!<br>
+        <button onclick="location.reload()">RESTART HUNT</button>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
@@ -25,18 +29,18 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // --- Materials ---
         const grassMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27 });
         const woodMat = new THREE.MeshStandardMaterial({ color: 0x5d3a1a });
+        const leafMat = new THREE.MeshStandardMaterial({ color: 0x1a4a15 });
         const waterMat = new THREE.MeshStandardMaterial({ color: 0x00ccff, transparent: true, opacity: 0.6 });
-        const rockMat = new THREE.MeshStandardMaterial({ color: 0x888888 });
+        const rockMat = new THREE.MeshStandardMaterial({ color: 0x777777 });
 
         // 1. GROUND
         const grass = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), grassMat);
         grass.rotation.x = -Math.PI/2; grass.position.y = -1.5; scene.add(grass);
 
-        // 2. THE POND (With Stone Collision)
-        const pondPos = { x: 40, z: -50 };
+        // 2. THE POND (Fixed Physics)
+        const pondPos = { x: 45, z: -45 };
         const pondGroup = new THREE.Group();
         pondGroup.position.set(pondPos.x, -1.5, pondPos.z);
         scene.add(pondGroup);
@@ -44,15 +48,18 @@
         const water = new THREE.Mesh(new THREE.CircleGeometry(15, 32), waterMat);
         water.rotation.x = -Math.PI/2; water.position.y = 0.8; pondGroup.add(water);
 
-        // Visual Stones
-        for(let i=0; i<40; i++) {
-            const angle = (i/40) * Math.PI * 2;
-            const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(1.5), rockMat);
-            stone.position.set(Math.cos(angle)*16, 0.5, Math.sin(angle)*16);
+        const pondRocks = [];
+        for(let i=0; i<30; i++) {
+            const angle = (i/30) * Math.PI * 2;
+            const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(2), rockMat);
+            const x = Math.cos(angle)*17;
+            const z = Math.sin(angle)*17;
+            stone.position.set(x, 0.5, z);
             pondGroup.add(stone);
+            pondRocks.push({x: x + pondPos.x, z: z + pondPos.z, r: 2});
         }
 
-        // 3. CABIN (Solid Walls)
+        // 3. CABIN (With Roof)
         const cabinWalls = [];
         function makeWall(w, h, d, x, y, z) {
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), woodMat);
@@ -60,23 +67,39 @@
             scene.add(mesh);
             cabinWalls.push(new THREE.Box3().setFromObject(mesh));
         }
-        // Hollow structure
+        // Walls
         makeWall(30, 15, 2, 0, 6, -100); // Back
         makeWall(2, 15, 30, -15, 6, -85); // Left
         makeWall(2, 15, 30, 15, 6, -85);  // Right
-        makeWall(12, 15, 2, -9, 6, -70);  // Front Left
-        makeWall(12, 15, 2, 9, 6, -70);   // Front Right
+        makeWall(11, 15, 2, -9.5, 6, -70); // Front L
+        makeWall(11, 15, 2, 9.5, 6, -70);  // Front R
+        
+        // THE ROOF
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(24, 12, 4), new THREE.MeshStandardMaterial({color: 0x4a1a1a}));
+        roof.position.set(0, 19, -85);
+        roof.rotation.y = Math.PI/4;
+        scene.add(roof);
 
-        // 4. TREES (With Collision Data)
+        // 4. TREES (Now with Leaves!)
         const trees = [];
-        for(let i=0; i<100; i++) {
+        for(let i=0; i<80; i++) {
             const tx = Math.random() * 400 - 200;
             const tz = Math.random() * 400 - 200;
-            if (Math.abs(tx) > 20 || (tz > -60 || tz < -110)) {
-                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 8), woodMat);
-                trunk.position.set(tx, 2.5, tz);
-                scene.add(trunk);
-                trees.push({ x: tx, z: tz, r: 1.5 });
+            // Exclusion zone for cabin/pond
+            if (Math.abs(tx) > 25 || (tz > -50 || tz < -120)) {
+                const treeGroup = new THREE.Group();
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 8), woodMat);
+                treeGroup.add(trunk);
+                
+                for(let j=0; j<3; j++) {
+                    const leaves = new THREE.Mesh(new THREE.ConeGeometry(5 - j, 6, 8), leafMat);
+                    leaves.position.y = 4 + (j * 3);
+                    treeGroup.add(leaves);
+                }
+                
+                treeGroup.position.set(tx, 2.5, tz);
+                scene.add(treeGroup);
+                trees.push({ x: tx, z: tz, r: 2 });
             }
         }
 
@@ -85,7 +108,7 @@
         const chests = [];
         for(let i=0; i<10; i++){
             const chest = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), new THREE.MeshStandardMaterial({color:0xffd700, emissive:0xffaa00}));
-            chest.position.set(Math.random()*300-150, -0.5, Math.random()*300-150);
+            chest.position.set(Math.random()*360-180, -0.5, Math.random()*360-180);
             scene.add(chest);
             chests.push(chest);
         }
@@ -99,25 +122,23 @@
         window.onkeydown = (e) => keys[e.code] = true;
         window.onkeyup = (e) => keys[e.code] = false;
         let yaw = 0, pitch = 0;
-        camera.position.set(0, 2, 10);
+        camera.position.set(0, 2, 20);
 
         function animate() {
             requestAnimationFrame(animate);
 
             if (keys['ArrowLeft']) yaw += 0.04;
-            if (keys['ArrowRight']) yaw -= 0.04;
-            if (keys['ArrowUp']) pitch += 0.04;
-            if (keys['ArrowDown']) pitch -= 0.04;
+            if (keys['ArrowRight']) yaw -= 0.05;
+            if (keys['ArrowUp']) pitch = Math.min(1.4, pitch + 0.04);
+            if (keys['ArrowDown']) pitch = Math.max(-1.4, pitch - 0.04);
             camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
-            // Movement Logic
             let currentSpd = 0.8;
             const distToPond = Math.sqrt(Math.pow(camera.position.x - pondPos.x, 2) + Math.pow(camera.position.z - pondPos.z, 2));
             
-            // Swim/Slowdown logic
             if (distToPond < 15) {
-                currentSpd = 0.2; // Slow down in water
-                camera.position.y = 2 + Math.sin(Date.now() * 0.005) * 0.2; // Bobbing
+                currentSpd = 0.25; 
+                camera.position.y = 2 + Math.sin(Date.now() * 0.005) * 0.2;
             } else {
                 camera.position.y = 2;
             }
@@ -130,21 +151,19 @@
             if (keys['KeyA']) { nextX -= Math.cos(yaw) * currentSpd; nextZ += Math.sin(yaw) * currentSpd; }
             if (keys['KeyD']) { nextX += Math.cos(yaw) * currentSpd; nextZ -= Math.sin(yaw) * currentSpd; }
 
-            // --- COLLISION CHECKS ---
             let blocked = false;
+            const playerPos = new THREE.Vector3(nextX, 2, nextZ);
 
-            // 1. Cabin Wall Check
-            const playerPoint = new THREE.Vector3(nextX, 2, nextZ);
-            cabinWalls.forEach(box => { if(box.containsPoint(playerPoint)) blocked = true; });
-
-            // 2. Tree Check
+            // Wall Collision
+            cabinWalls.forEach(box => { if(box.containsPoint(playerPos)) blocked = true; });
+            // Tree Collision
             trees.forEach(t => {
-                const d = Math.sqrt(Math.pow(nextX - t.x, 2) + Math.pow(nextZ - t.z, 2));
-                if (d < t.r) blocked = true;
+                if (Math.sqrt(Math.pow(nextX - t.x, 2) + Math.pow(nextZ - t.z, 2)) < t.r) blocked = true;
             });
-
-            // 3. Pond Rim Check (Blocks entering pond unless wading)
-            if (distToPond > 15 && distToPond < 17.5) blocked = true;
+            // Rock Collision
+            pondRocks.forEach(r => {
+                if (Math.sqrt(Math.pow(nextX - r.x, 2) + Math.pow(nextZ - r.z, 2)) < r.r) blocked = true;
+            });
 
             if (!blocked) {
                 camera.position.x = nextX;
@@ -153,7 +172,7 @@
 
             // Chest Collection
             chests.forEach(c => {
-                if(c.visible && camera.position.distanceTo(c.position) < 4) {
+                if(c.visible && camera.position.distanceTo(c.position) < 5) {
                     c.visible = false;
                     score++;
                     document.getElementById('score').innerText = score;
