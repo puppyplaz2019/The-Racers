@@ -1,170 +1,534 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Estate V42 - Flight & Dash</title>
+    <title>3D Estate V50 - The Living World</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #87CEEB; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #000; font-family: monospace; background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; pointer-events: none; border: 2px solid #2d5a27; }
-        #win { position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); color: gold; font-family: 'Arial Black', sans-serif; font-size: 40px; display: none; text-shadow: 2px 2px #000; text-align: center; }
-        #status { font-weight: bold; color: #d63384; }
-        button { pointer-events: auto; padding: 10px; cursor: pointer; }
+        body { margin: 0; overflow: hidden; background: #000; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #fff; font-family: monospace; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; pointer-events: none; border: 2px solid #fff; width: 300px; }
+        #center-ui { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: gold; font-family: 'Arial Black', sans-serif; font-size: 20px; display: none; text-shadow: 2px 2px #000; text-align: center; pointer-events: none; }
+        #pause-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; color: white; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 10; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+        
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        h2 { margin-top: 0; text-decoration: underline; }
+        button { pointer-events: auto; padding: 10px 20px; font-size: 20px; cursor: pointer; background: gold; border: none; font-weight: bold; margin-top: 20px; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h2 style="margin:0">ESTATE_V42</h2>
-        <p>Chests Found: <span id="score">0</span>/10</p>
-        <p>Mode: <span id="status">WALKING</span></p>
-        <p><b>FLY:</b> Dbl-Tap Space (Space/Shift for Up/Down)</p>
-        <p><b>DASH:</b> Dbl-Tap W,A,S,D | <b>RESET:</b> 'R'</p>
+        <h2>ESTATE V50</h2>
+        <div class="stat-row"><span>Time:</span> <span id="time-display">Day</span></div>
+        <div class="stat-row"><span>Weather:</span> <span id="weather-display">Clear</span></div>
+        <div class="stat-row"><span>Mode:</span> <span id="mode-display" style="color:yellow">WALKING</span></div>
+        <hr>
+        <p><b>[WASD]</b> Move | <b>[Space]</b> Jump/Fly</p>
+        <p><b>[B]</b> Build Mode (Click to place)</p>
+        <p><b>[E]</b> Drive Car / Interact</p>
+        <p><b>[P]</b> Pause Game</p>
+        <div id="interaction-msg" style="color:cyan; font-weight:bold; display:none;"></div>
     </div>
-    <div id="win">YOU FOUND IT ALL!<br><button onclick="location.reload()">RESTART</button></div>
+
+    <div id="center-ui"></div>
+    <div id="crosshair"></div>
+
+    <div id="pause-menu" style="display: none;">
+        <h1>PAUSED</h1>
+        <p>Press 'P' to Resume</p>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        window.onload = () => {
-            const scene = new THREE.Scene();
+        // --- GLOBAL VARIABLES ---
+        let scene, camera, renderer;
+        let keys = {}, mouse = new THREE.Vector2();
+        let isPaused = false, isFlying = false, isJumping = false, isDriving = false, buildMode = false;
+        let vy = 0, pitch = 0, yaw = 0;
+        
+        // Game Objects
+        const walls = [], groundObjects = [], interactables = [];
+        let car, pet, sunLight, sunMesh, rainSystem;
+        let dayTime = 0; // 0 to 1
+        let weather = 'clear'; // 'clear' or 'rain'
+        
+        // Materials
+        const mats = {
+            grass: new THREE.MeshStandardMaterial({ color: 0x2d5a27 }),
+            sand: new THREE.MeshStandardMaterial({ color: 0xe6c288 }),
+            wood: new THREE.MeshStandardMaterial({ color: 0x5d3a1a }),
+            leaf: new THREE.MeshStandardMaterial({ color: 0x1a4a15 }),
+            water: new THREE.MeshStandardMaterial({ color: 0x00ccff, transparent: true, opacity: 0.6 }),
+            rock: new THREE.MeshStandardMaterial({ color: 0x777777 }),
+            car: new THREE.MeshStandardMaterial({ color: 0xff0000 }),
+            road: new THREE.MeshStandardMaterial({ color: 0x333333 }),
+            buildGhost: new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5, wireframe: true }),
+            brick: new THREE.MeshStandardMaterial({ color: 0x8a4b26 })
+        };
+
+        init();
+        animate();
+
+        function init() {
+            // 1. SETUP
+            scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 3000);
-            const renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
-
-            // Lighting
-            scene.add(new THREE.AmbientLight(0x777777));
-            const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-            sunLight.position.set(100, 200, 100); scene.add(sunLight);
-            const sunSphere = new THREE.Mesh(new THREE.SphereGeometry(15), new THREE.MeshBasicMaterial({color:0xffff00}));
-            sunSphere.position.set(200, 250, -300); scene.add(sunSphere);
-
-            // World
-            const grass = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshStandardMaterial({color:0x2d5a27}));
-            grass.rotation.x = -Math.PI/2; grass.position.y = -1.5; scene.add(grass);
-
-            // Cabin & Roof
-            const woodMat = new THREE.MeshStandardMaterial({color:0x5d3a1a});
-            const cabinWalls = [];
-            function wall(w, h, d, x, y, z) {
-                const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), woodMat);
-                m.position.set(x,y,z); scene.add(m); cabinWalls.push(new THREE.Box3().setFromObject(m));
-            }
-            wall(30,15,2, 0,6,-100); wall(2,15,30, -15,6,-85); wall(2,15,30, 15,6,-85);
-            wall(11,15,2, -9.5,6,-70); wall(11,15,2, 9.5,6,-70);
-            const roof = new THREE.Mesh(new THREE.ConeGeometry(24,12,4), new THREE.MeshStandardMaterial({color:0x4a1a1a}));
-            roof.position.set(0,19,-85); roof.rotation.y = Math.PI/4; scene.add(roof);
-
-            // Pond
-            const pondPos = {x:45, z:-45};
-            const water = new THREE.Mesh(new THREE.CircleGeometry(15,32), new THREE.MeshStandardMaterial({color:0x00ccff, transparent:true, opacity:0.6}));
-            water.rotation.x = -Math.PI/2; water.position.set(pondPos.x, -0.7, pondPos.z); scene.add(water);
-
-            // Trees
-            const trees = [];
-            for(let i=0; i<60; i++) {
-                const tx = Math.random()*800-400, tz = Math.random()*800-400;
-                if(Math.abs(tx) > 30 || (tz < -120 || tz > -50)) {
-                    const g = new THREE.Group();
-                    g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.8,8), woodMat));
-                    const l = new THREE.Mesh(new THREE.ConeGeometry(5,12,8), new THREE.MeshStandardMaterial({color:0x1a4a15}));
-                    l.position.y = 6; g.add(l);
-                    g.position.set(tx, 2.5, tz); scene.add(g); trees.push({x:tx, z:tz, r:3});
-                }
-            }
-
-            // Chests & Particles
-            const chests = [];
-            for(let i=0; i<10; i++){
-                const c = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), new THREE.MeshStandardMaterial({color:0xffd700, emissive:0xffaa00}));
-                c.position.set(Math.random()*600-300, -0.5, Math.random()*600-300); scene.add(c); chests.push(c);
-            }
-            const particles = [];
-
-            // Physics/Input
-            let keys = {}, lastKeyTime = {}, isFlying = false, isJumping = false, vy = 0, dashEnd = 0, lastSpace = 0;
+            scene.fog = new THREE.Fog(0x87CEEB, 10, 800);
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
             camera.position.set(0, 2, 20);
 
-            window.onkeydown = (e) => {
-                const now = Date.now();
-                if(e.code === 'KeyR') camera.position.set(0,2,20);
-                if(e.code === 'Space') {
-                    if(now - lastSpace < 300) { isFlying = !isFlying; vy = 0; document.getElementById('status').innerText = isFlying ? "FLYING" : "WALKING"; }
-                    else if(!isFlying && !isJumping) { vy = 0.45; isJumping = true; }
-                    lastSpace = now;
-                }
-                if(['KeyW','KeyA','KeyS','KeyD'].includes(e.code)) {
-                    if(now - (lastKeyTime[e.code] || 0) < 300) dashEnd = now + 1000;
-                    lastKeyTime[e.code] = now;
-                }
-                keys[e.code] = true;
-            };
-            window.onkeyup = (e) => keys[e.code] = false;
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
 
-            let yaw = 0, pitch = 0;
-            function animate() {
-                requestAnimationFrame(animate);
-                const now = Date.now();
-                const dashing = now < dashEnd;
+            // 2. LIGHTING (Sun & Ambient)
+            scene.add(new THREE.AmbientLight(0x404040));
+            sunLight = new THREE.DirectionalLight(0xffffff, 1);
+            sunLight.position.set(100, 200, 100);
+            sunLight.castShadow = true;
+            sunLight.shadow.camera.left = -200; sunLight.shadow.camera.right = 200;
+            sunLight.shadow.camera.top = 200; sunLight.shadow.camera.bottom = -200;
+            scene.add(sunLight);
 
-                // Cam
-                if(keys['ArrowLeft']) yaw += 0.04; if(keys['ArrowRight']) yaw -= 0.04;
-                if(keys['ArrowUp']) pitch = Math.min(1.4, pitch + 0.04); if(keys['ArrowDown']) pitch = Math.max(-1.4, pitch - 0.04);
+            sunMesh = new THREE.Mesh(new THREE.SphereGeometry(20), new THREE.MeshBasicMaterial({color: 0xffff00}));
+            scene.add(sunMesh);
+
+            // 3. BIOMES (Grass vs Desert)
+            const grass = new THREE.Mesh(new THREE.PlaneGeometry(1000, 2000), mats.grass);
+            grass.rotation.x = -Math.PI/2; 
+            grass.position.set(-500, -1.5, 0); 
+            grass.receiveShadow = true;
+            scene.add(grass); groundObjects.push(grass);
+
+            const desert = new THREE.Mesh(new THREE.PlaneGeometry(1000, 2000), mats.sand);
+            desert.rotation.x = -Math.PI/2; 
+            desert.position.set(500, -1.4, 0); // Slightly higher to prevent z-fighting at border
+            desert.receiveShadow = true;
+            scene.add(desert); groundObjects.push(desert);
+
+            // 4. GENERATION
+            generateForest();
+            generateDesert();
+            generateVillage();
+            createPondAndFountain();
+            createCar();
+            createPet();
+            createNPCs();
+
+            // 5. EVENTS
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('keydown', (e) => {
+                if(e.key === 'p') togglePause();
+                if(!isPaused) {
+                    if(e.code === 'KeyB') toggleBuildMode();
+                    if(e.code === 'KeyE') handleInteract();
+                    if(e.code === 'Space') handleSpace(e);
+                    keys[e.code] = true;
+                }
+            });
+            window.addEventListener('keyup', (e) => keys[e.code] = false);
+            window.addEventListener('mousedown', handleClick);
+        }
+
+        // --- GENERATION FUNCTIONS ---
+
+        function generateForest() {
+            // Trees in the West (negative X)
+            for(let i=0; i<60; i++) {
+                const x = Math.random() * -450 - 20;
+                const z = Math.random() * 800 - 400;
+                const tree = new THREE.Group();
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 6), mats.wood);
+                trunk.position.y = 3; trunk.castShadow = true;
+                const leaves = new THREE.Mesh(new THREE.DodecahedronGeometry(3), mats.leaf);
+                leaves.position.y = 6; leaves.castShadow = true;
+                tree.add(trunk, leaves);
+                tree.position.set(x, -1.5, z);
+                scene.add(tree);
+                walls.push(new THREE.Box3().setFromObject(trunk));
+            }
+        }
+
+        function generateDesert() {
+            // Cacti in the East (positive X)
+            for(let i=0; i<40; i++) {
+                const x = Math.random() * 450 + 50;
+                const z = Math.random() * 800 - 400;
+                const cactus = new THREE.Group();
+                const main = new THREE.Mesh(new THREE.BoxGeometry(1, 6, 1), mats.leaf);
+                main.position.y = 3;
+                const arm = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 1), mats.leaf);
+                arm.position.set(1, 4, 0);
+                cactus.add(main, arm);
+                cactus.position.set(x, -1.5, z);
+                scene.add(cactus);
+                walls.push(new THREE.Box3().setFromObject(main));
+            }
+        }
+
+        function generateVillage() {
+            // A few houses near the center
+            createHouse(-50, 0, -50);
+            createHouse(-80, 0, -20);
+            createHouse(-40, 0, 20);
+            
+            // Street lights / Decoration
+            const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 8), new THREE.MeshStandardMaterial({color:0x222222}));
+            lamp.position.set(-30, 2.5, 0);
+            const bulb = new THREE.Mesh(new THREE.SphereGeometry(1), new THREE.MeshBasicMaterial({color:0xffffaa}));
+            bulb.position.y = 4; lamp.add(bulb);
+            scene.add(lamp);
+        }
+
+        function createHouse(x, y, z) {
+            const houseGroup = new THREE.Group();
+            
+            // Walls
+            const w = 15, h = 8, d = 15;
+            const house = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mats.brick);
+            house.position.y = h/2; house.castShadow = true; house.receiveShadow = true;
+            
+            // Roof
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(12, 6, 4), mats.wood);
+            roof.position.y = h + 3; roof.rotation.y = Math.PI/4;
+
+            // Furniture (Inside) - Table & Chair
+            const table = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 2), mats.wood);
+            table.position.set(0, 1, 0);
+            const chair = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), mats.wood);
+            chair.position.set(3, 0.75, 0);
+            
+            // Supplies (Crates)
+            const crate = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), mats.wood);
+            crate.position.set(-4, 1, -4);
+
+            houseGroup.add(house, roof, table, chair, crate);
+            houseGroup.position.set(x, -1.5, z);
+            scene.add(houseGroup);
+            walls.push(new THREE.Box3().setFromObject(house));
+        }
+
+        function createPondAndFountain() {
+            // Pond
+            const pondPos = {x: 45, z: -45};
+            const water = new THREE.Mesh(new THREE.CircleGeometry(15, 32), mats.water);
+            water.rotation.x = -Math.PI/2; water.position.set(pondPos.x, -1.4, pondPos.z);
+            scene.add(water);
+
+            // Fountain Particles
+            const geom = new THREE.BufferGeometry();
+            const counts = 200;
+            const positions = new Float32Array(counts * 3);
+            const vels = [];
+            for(let i=0; i<counts; i++) {
+                positions[i*3] = pondPos.x;
+                positions[i*3+1] = -1.4;
+                positions[i*3+2] = pondPos.z;
+                vels.push({y: Math.random()*0.5 + 0.2, x: (Math.random()-0.5)*0.1, z: (Math.random()-0.5)*0.1});
+            }
+            geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const particles = new THREE.Points(geom, new THREE.PointsMaterial({color:0xffffff, size:0.5}));
+            particles.userData = { vels: vels, origin: pondPos };
+            scene.add(particles);
+            interactables.push({type:'fountain', mesh: particles});
+        }
+
+        function createCar() {
+            car = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 6), mats.car);
+            body.position.y = 1; body.castShadow = true;
+            
+            const wGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.5);
+            const wMat = new THREE.MeshStandardMaterial({color:0x000000});
+            const w1 = new THREE.Mesh(wGeo, wMat); w1.rotation.z = Math.PI/2; w1.position.set(2.1, 0.5, 2);
+            const w2 = new THREE.Mesh(wGeo, wMat); w2.rotation.z = Math.PI/2; w2.position.set(-2.1, 0.5, 2);
+            const w3 = new THREE.Mesh(wGeo, wMat); w3.rotation.z = Math.PI/2; w3.position.set(2.1, 0.5, -2);
+            const w4 = new THREE.Mesh(wGeo, wMat); w4.rotation.z = Math.PI/2; w4.position.set(-2.1, 0.5, -2);
+
+            car.add(body, w1, w2, w3, w4);
+            car.position.set(10, -1.5, 10);
+            scene.add(car);
+            walls.push(new THREE.Box3().setFromObject(body)); // Can collide when walking
+        }
+
+        function createPet() {
+            const geom = new THREE.SphereGeometry(0.5, 16, 16);
+            const mat = new THREE.MeshBasicMaterial({color: 0x00ffff, wireframe: true});
+            pet = new THREE.Mesh(geom, mat);
+            pet.position.set(0, 5, 0);
+            scene.add(pet);
+            // Pet Light
+            const pl = new THREE.PointLight(0x00ffff, 1, 10);
+            pet.add(pl);
+        }
+
+        function createNPCs() {
+            const npcData = [
+                {name: "Villager Tom", msg: "Welcome to the new Village!", x: -45, z: -55, color: 0x0000ff},
+                {name: "Desert Dan", msg: "It's hot out here...", x: 100, z: 0, color: 0xffaa00}
+            ];
+
+            npcData.forEach(n => {
+                const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(1, 3, 4), new THREE.MeshStandardMaterial({color: n.color}));
+                mesh.position.set(n.x, 0, n.z);
+                mesh.castShadow = true;
+                scene.add(mesh);
+                interactables.push({type: 'npc', mesh: mesh, name: n.name, msg: n.msg});
+                walls.push(new THREE.Box3().setFromObject(mesh));
+            });
+        }
+
+        function createRain() {
+            const count = 2000;
+            const geom = new THREE.BufferGeometry();
+            const pos = new Float32Array(count*3);
+            for(let i=0; i<count; i++){
+                pos[i*3] = (Math.random()-0.5)*400;
+                pos[i*3+1] = Math.random()*100;
+                pos[i*3+2] = (Math.random()-0.5)*400;
+            }
+            geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            const mat = new THREE.PointsMaterial({color:0xaaaaaa, size:0.2, transparent:true});
+            rainSystem = new THREE.Points(geom, mat);
+            scene.add(rainSystem);
+        }
+
+        // --- GAME LOGIC ---
+
+        function togglePause() {
+            isPaused = !isPaused;
+            document.getElementById('pause-menu').style.display = isPaused ? 'flex' : 'none';
+        }
+
+        function toggleBuildMode() {
+            buildMode = !buildMode;
+            document.getElementById('mode-display').innerText = buildMode ? "BUILDING" : (isDriving ? "DRIVING" : "WALKING");
+            document.getElementById('mode-display').style.color = buildMode ? "lime" : "yellow";
+        }
+
+        function handleInteract() {
+            if(isDriving) {
+                // Exit Car
+                isDriving = false;
+                camera.position.y = 2; // Pop out top
+                car.add(camera); // Detach logic fix below
+                scene.add(camera);
+                camera.position.set(car.position.x - 5, car.position.y + 4, car.position.z);
+                document.getElementById('mode-display').innerText = "WALKING";
+                return;
+            }
+
+            // Check distance to car
+            if(camera.position.distanceTo(car.position) < 8) {
+                isDriving = true;
+                isFlying = false;
+                document.getElementById('mode-display').innerText = "DRIVING";
+                // Attach camera to car roughly
+            }
+        }
+
+        function handleSpace(e) {
+            if(isDriving) return;
+            // Flight Logic
+            const now = Date.now();
+            if(!isFlying && !isJumping) { vy = 0.45; isJumping = true; }
+            // Double tap for fly
+            if(e.repeat) return;
+        }
+
+        function handleClick(event) {
+            if(isPaused || !buildMode) return;
+            // Build Logic
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+            const intersects = raycaster.intersectObjects(groundObjects);
+            
+            if(intersects.length > 0) {
+                const p = intersects[0].point;
+                const box = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), mats.brick);
+                box.position.set(p.x, p.y + 1, p.z);
+                scene.add(box);
+                walls.push(new THREE.Box3().setFromObject(box));
+            }
+        }
+
+        function updateTimeAndWeather() {
+            // Time Cycle
+            dayTime += 0.0005;
+            if(dayTime > 1) dayTime = 0;
+            
+            const angle = dayTime * Math.PI * 2;
+            const r = 300;
+            sunMesh.position.set(Math.cos(angle)*r, Math.sin(angle)*r, 0);
+            sunLight.position.copy(sunMesh.position);
+
+            // Sky Color
+            if(dayTime < 0.25 || dayTime > 0.75) {
+                 scene.background.setHex(0x000000); // Night
+                 scene.fog.color.setHex(0x000000);
+                 document.getElementById('time-display').innerText = "Night";
+            } else if (dayTime > 0.45 && dayTime < 0.55) {
+                 scene.background.setHex(0x87CEEB); // Noon
+                 scene.fog.color.setHex(0x87CEEB);
+                 document.getElementById('time-display').innerText = "Day";
+            } else {
+                 scene.background.setHex(0xffa500); // Sunrise/Set
+                 scene.fog.color.setHex(0xffa500);
+                 document.getElementById('time-display').innerText = "Twilight";
+            }
+
+            // Weather (Random Rain)
+            if(Math.random() < 0.001) {
+                weather = (weather === 'clear') ? 'rain' : 'clear';
+                if(weather === 'rain') createRain();
+                else if(rainSystem) { scene.remove(rainSystem); rainSystem = null; }
+                document.getElementById('weather-display').innerText = (weather === 'rain' ? "Raining" : "Clear");
+            }
+
+            if(weather === 'rain' && rainSystem) {
+                const pos = rainSystem.geometry.attributes.position.array;
+                for(let i=1; i<pos.length; i+=3) {
+                    pos[i] -= 2;
+                    if(pos[i] < -1.5) pos[i] = 100;
+                }
+                rainSystem.geometry.attributes.position.needsUpdate = true;
+                rainSystem.position.x = camera.position.x; // Rain follows camera x/z
+                rainSystem.position.z = camera.position.z;
+            }
+        }
+
+        function updateFountain() {
+            const f = interactables.find(i => i.type === 'fountain');
+            if(f) {
+                const pos = f.mesh.geometry.attributes.position.array;
+                const vels = f.mesh.userData.vels;
+                for(let i=0; i<vels.length; i++) {
+                    pos[i*3+1] += vels[i].y;
+                    pos[i*3] += vels[i].x;
+                    pos[i*3+2] += vels[i].z;
+                    if(pos[i*3+1] > 8) {
+                        pos[i*3+1] = -1.4;
+                        pos[i*3] = f.mesh.userData.origin.x;
+                        pos[i*3+2] = f.mesh.userData.origin.z;
+                    }
+                }
+                f.mesh.geometry.attributes.position.needsUpdate = true;
+            }
+        }
+
+        function checkInteractions() {
+            let msg = "";
+            let dist = 999;
+            
+            // Check NPCs
+            interactables.forEach(obj => {
+                if(obj.type === 'npc') {
+                    const d = camera.position.distanceTo(obj.mesh.position);
+                    if(d < 5) {
+                        msg = `${obj.name}: "${obj.msg}"`;
+                        obj.mesh.lookAt(camera.position);
+                    }
+                }
+            });
+
+            // Check Car
+            if(!isDriving && camera.position.distanceTo(car.position) < 8) {
+                msg = "Press 'E' to Drive";
+            }
+
+            const el = document.getElementById('interaction-msg');
+            if(msg) { el.innerText = msg; el.style.display = 'block'; }
+            else { el.style.display = 'none'; }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if(isPaused) return;
+
+            updateTimeAndWeather();
+            updateFountain();
+            checkInteractions();
+
+            // --- INPUT HANDLING ---
+            if(keys['ArrowLeft']) yaw += 0.04;
+            if(keys['ArrowRight']) yaw -= 0.04;
+            if(keys['ArrowUp']) pitch = Math.min(1.5, pitch + 0.04);
+            if(keys['ArrowDown']) pitch = Math.max(-1.5, pitch - 0.04);
+
+            let speed = isDriving ? 2.5 : (keys['ShiftLeft'] ? 1.0 : 0.4); // Car is fast
+            let dir = 0;
+            let move = false;
+
+            // Determine Target X/Z
+            let nextPos = new THREE.Vector3();
+            if(isDriving) {
+                nextPos.copy(car.position);
+                camera.rotation.set(0, yaw, 0); // Lock cam to yaw
+            } else {
+                nextPos.copy(camera.position);
                 camera.rotation.set(pitch, yaw, 0, 'YXZ');
-                camera.fov = dashing ? 95 : 75; camera.updateProjectionMatrix();
+            }
 
-                // Movement
-                let speed = isFlying ? 1.5 : 0.8;
-                if(dashing) speed *= 2.5;
+            if(keys['KeyW']) { 
+                nextPos.x -= Math.sin(yaw) * speed; 
+                nextPos.z -= Math.cos(yaw) * speed; 
+                move = true; 
+            }
+            if(keys['KeyS']) { 
+                nextPos.x += Math.sin(yaw) * speed; 
+                nextPos.z += Math.cos(yaw) * speed; 
+                move = true; 
+            }
+            if(!isDriving && keys['KeyA']) { nextPos.x -= Math.cos(yaw)*speed; nextPos.z += Math.sin(yaw)*speed; }
+            if(!isDriving && keys['KeyD']) { nextPos.x += Math.cos(yaw)*speed; nextPos.z -= Math.sin(yaw)*speed; }
 
-                // Vertical
-                if(isFlying) {
-                    if(keys['Space']) camera.position.y += 0.6;
-                    if(keys['ShiftLeft']) camera.position.y -= 0.6;
-                    if(camera.position.y < 2) { camera.position.y = 2; isFlying = false; document.getElementById('status').innerText = "WALKING"; }
-                } else if(isJumping) {
-                    camera.position.y += vy; vy -= 0.02;
+            // --- PHYSICS & COLLISION ---
+            if(isDriving) {
+                // Car Physics (Simplified)
+                car.position.set(nextPos.x, -1.5, nextPos.z);
+                car.rotation.y = yaw + Math.PI; // Face forward
+                // Camera follows car
+                camera.position.set(
+                    car.position.x + Math.sin(yaw)*10, 
+                    car.position.y + 6, 
+                    car.position.z + Math.cos(yaw)*10
+                );
+                camera.lookAt(car.position);
+            } else {
+                // Player Physics
+                if(isJumping) {
+                    camera.position.y += vy;
+                    vy -= 0.02; // Gravity
                     if(camera.position.y <= 2) { camera.position.y = 2; isJumping = false; vy = 0; }
                 }
 
-                let nx = camera.position.x, nz = camera.position.z;
-                if(keys['KeyW']) { nx -= Math.sin(yaw)*speed; nz -= Math.cos(yaw)*speed; }
-                if(keys['KeyS']) { nx += Math.sin(yaw)*speed; nz += Math.cos(yaw)*speed; }
-                if(keys['KeyA']) { nx -= Math.cos(yaw)*speed; nz += Math.sin(yaw)*speed; }
-                if(keys['KeyD']) { nx += Math.cos(yaw)*speed; nz -= Math.sin(yaw)*speed; }
-
-                // Glitter
-                if(keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD']) {
-                    const p = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.2,0.2), new THREE.MeshBasicMaterial({color:0xffd700}));
-                    p.position.copy(camera.position).add(new THREE.Vector3(0,-1,0));
-                    scene.add(p); particles.push({m:p, l:1.0});
-                }
-
-                // Collisions
+                // Wall Collision
                 let blocked = false;
-                const pPos = new THREE.Vector3(nx, camera.position.y, nz);
-                if(camera.position.y < 5) {
-                    cabinWalls.forEach(b => { if(b.containsPoint(pPos)) blocked = true; });
-                    trees.forEach(t => { if(Math.sqrt(Math.pow(nx-t.x,2)+Math.pow(nz-t.z,2)) < t.r) blocked = true; });
-                }
-                if(!blocked) { camera.position.x = nx; camera.position.z = nz; }
-
-                // Particle Clean
-                for(let i=particles.length-1; i>=0; i--) {
-                    particles[i].l -= 0.03; particles[i].m.scale.setScalar(particles[i].l);
-                    if(particles[i].l <= 0) { scene.remove(particles[i].m); particles.splice(i,1); }
-                }
-
-                // Score
-                chests.forEach(c => {
-                    if(c.visible && camera.position.distanceTo(c.position) < 5) {
-                        c.visible = false; document.getElementById('score').innerText = ++score;
-                        if(score === 10) document.getElementById('win').style.display = 'block';
-                    }
+                const testPt = new THREE.Vector3(nextPos.x, 2, nextPos.z);
+                walls.forEach(w => {
+                    if(w.containsPoint(testPt)) blocked = true;
                 });
 
-                renderer.render(scene, camera);
+                if(!blocked) {
+                    camera.position.x = nextPos.x;
+                    camera.position.z = nextPos.z;
+                }
             }
-            animate();
-        };
+
+            // Pet follows player
+            if(pet) {
+                pet.position.lerp(new THREE.Vector3(camera.position.x, camera.position.y+1, camera.position.z), 0.05);
+                pet.position.y = Math.max(pet.position.y, 2) + Math.sin(Date.now()*0.005)*0.5; // Bobbing
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
     </script>
 </body>
 </html>
