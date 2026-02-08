@@ -1,320 +1,213 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>5D Treasure Hunt - V53</title>
+    <title>Estate V54 - Optimized Lite</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
-        #overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; }
-        #ui { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 10px; border: 1px solid gold; pointer-events: none; width: 250px; }
-        #msg { position: absolute; bottom: 20%; width: 100%; text-align: center; color: cyan; font-size: 24px; font-weight: bold; text-shadow: 2px 2px #000; pointer-events: none; display: none; }
-        .stat { color: gold; font-weight: bold; }
-        button { padding: 15px 30px; font-size: 20px; cursor: pointer; background: #f1c40f; border: none; border-radius: 5px; font-weight: bold; margin-top: 20px; }
-        button:hover { background: #d4ac0d; }
+        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: sans-serif; }
+        #ui { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.7); padding: 12px; border-radius: 5px; pointer-events: none; font-size: 14px; }
+        #overlay { position: absolute; width: 100%; height: 100%; background: #222; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        .btn { padding: 15px 30px; font-size: 20px; cursor: pointer; background: lime; border: none; font-weight: bold; }
+        #msg { position: absolute; top: 50%; width: 100%; text-align: center; color: yellow; font-size: 20px; display: none; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <div id="overlay">
-        <h1>5D TREASURE HUNT</h1>
-        <p>Find 10 Golden Chests across the Forest and Desert!</p>
-        <button onclick="startGame()">CLICK TO START</button>
+        <h1>ESTATE V54 (LITE)</h1>
+        <p>Optimized for performance</p>
+        <button class="btn" onclick="start()">START GAME</button>
     </div>
 
     <div id="ui">
-        <h2 style="margin:0; color:#f1c40f;">ESTATE V53</h2>
-        <p>Chests: <span id="score" class="stat">0/10</span></p>
-        <p>Weather: <span id="weather" class="stat">Clear</span></p>
-        <p>Mode: <span id="mode" class="stat">Walking</span></p>
+        <b>WASD</b>: Move | <b>Space</b>: Jump<br>
+        <b>E</b>: Drive/Exit Car | <b>B</b>: Build Mode<br>
+        <b>P</b>: Pause | <b>Shift</b>: Sprint<br>
         <hr>
-        <small>
-            <b>WASD</b>: Move | <b>Space</b>: Jump/Fly<br>
-            <b>E</b>: Drive Car / Enter House<br>
-            <b>B</b>: Build Mode (Click to place)<br>
-            <b>P</b>: Pause
-        </small>
+        Time: <span id="time">Day</span> | Mode: <span id="mode">Walk</span>
     </div>
 
     <div id="msg"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        let scene, camera, renderer, car, pet, sun;
-        let chests = [], npcs = [], walls = [], particles = [];
-        let score = 0, isDriving = false, buildMode = false, isPaused = false;
-        let keys = {}, clock = new THREE.Clock();
-        let vy = 0, isJumping = false, isFlying = false;
+        let scene, camera, renderer, car, pet;
+        let keys = {}, objects = [], buildMode = false, isPaused = false, isDriving = false;
+        let vy = 0, isJumping = false, dayTime = 0.5;
 
-        function startGame() {
+        function start() {
             document.getElementById('overlay').style.display = 'none';
             init();
-            animate();
         }
 
         function init() {
-            // 1. Core Scene
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 1, 1000);
 
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(0, 5, 20); // Safe start position
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 3, 10);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: false }); // Antialias off for speed
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
 
-            // 2. Lighting
-            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambient);
+            // Lighting (Very simple ambient)
+            scene.add(new THREE.AmbientLight(0xffffff, 1));
 
-            sun = new THREE.DirectionalLight(0xffffff, 1);
-            sun.position.set(50, 100, 50);
-            sun.castShadow = true;
-            sun.shadow.camera.left = -200; sun.shadow.camera.right = 200;
-            sun.shadow.camera.top = 200; sun.shadow.camera.bottom = -200;
-            scene.add(sun);
+            // Biomes
+            const floor = new THREE.PlaneGeometry(1000, 1000);
+            const forestP = new THREE.Mesh(floor, new THREE.MeshBasicMaterial({color: 0x348C31}));
+            forestP.rotation.x = -Math.PI/2; forestP.position.set(-500, 0, 0); scene.add(forestP);
 
-            // 3. Biomes (Green Forest & Yellow Desert)
-            const floorGeo = new THREE.PlaneGeometry(2000, 2000);
-            const grassMat = new THREE.MeshStandardMaterial({ color: 0x27ae60 });
-            const sandMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f });
+            const desertP = new THREE.Mesh(floor, new THREE.MeshBasicMaterial({color: 0xEDC9AF}));
+            desertP.rotation.x = -Math.PI/2; desertP.position.set(500, 0, 0); scene.add(desertP);
 
-            const forest = new THREE.Mesh(floorGeo, grassMat);
-            forest.rotation.x = -Math.PI / 2;
-            forest.position.set(-500, 0, 0);
-            scene.add(forest);
-
-            const desert = new THREE.Mesh(floorGeo, sandMat);
-            desert.rotation.x = -Math.PI / 2;
-            desert.position.set(500, 0, 0);
-            scene.add(desert);
-
-            // 4. Decorations & Features
+            // Features
             createVillage();
             createNature();
             createLake();
             createCar();
-            createChests();
             createPet();
-            createNPCs();
 
-            // 5. Controls
+            // Input
             window.addEventListener('keydown', e => { 
                 keys[e.code] = true; 
                 if(e.code === 'KeyP') isPaused = !isPaused;
-                if(e.code === 'KeyE') interact();
                 if(e.code === 'KeyB') toggleBuild();
-                if(e.code === 'Space' && !isDriving) handleJump();
+                if(e.code === 'KeyE') toggleDrive();
             });
             window.addEventListener('keyup', e => keys[e.code] = false);
-            window.addEventListener('mousedown', buildObject);
+            window.addEventListener('mousedown', placeBlock);
+
+            loop();
         }
 
         function createVillage() {
-            for(let i=0; i<3; i++) {
+            for(let i=0; i<2; i++) {
                 const house = new THREE.Group();
-                const body = new THREE.Mesh(new THREE.BoxGeometry(10, 8, 10), new THREE.MeshStandardMaterial({color: 0x95a5a6}));
-                body.position.y = 4;
-                const roof = new THREE.Mesh(new THREE.ConeGeometry(8, 5, 4), new THREE.MeshStandardMaterial({color: 0x7f8c8d}));
-                roof.position.y = 10.5; roof.rotation.y = Math.PI/4;
+                const body = new THREE.Mesh(new THREE.BoxGeometry(8, 6, 8), new THREE.MeshBasicMaterial({color:0xaaaaaa}));
+                body.position.y = 3; house.add(body);
+                const roof = new THREE.Mesh(new THREE.BoxGeometry(9, 1, 9), new THREE.MeshBasicMaterial({color:0x555555}));
+                roof.position.y = 6.5; house.add(roof);
+                // Furniture & Supplies (Interior props)
+                const crate = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), new THREE.MeshBasicMaterial({color:0x442200}));
+                crate.position.set(2, 1, 2); house.add(crate);
                 
-                // Furniture inside
-                const table = new THREE.Mesh(new THREE.BoxGeometry(3, 1.5, 3), new THREE.MeshStandardMaterial({color: 0x3e2723}));
-                table.position.set(0, 0.75, 0);
-                house.add(body, roof, table);
-                
-                house.position.set(-30 - (i*20), 0, -20);
+                house.position.set(-20, 0, i * -20);
                 scene.add(house);
-                walls.push(new THREE.Box3().setFromObject(body));
+                objects.push(new THREE.Box3().setFromObject(body));
             }
         }
 
         function createNature() {
-            // Trees (Forest)
-            for(let i=0; i<40; i++) {
-                const x = -Math.random()*200 - 50, z = (Math.random()-0.5)*400;
-                const tree = new THREE.Group();
-                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 5), new THREE.MeshStandardMaterial({color:0x5d4037}));
-                trunk.position.y = 2.5;
-                const leaves = new THREE.Mesh(new THREE.SphereGeometry(3), new THREE.MeshStandardMaterial({color:0x1b5e20}));
-                leaves.position.y = 6;
-                tree.add(trunk, leaves); tree.position.set(x, 0, z);
-                scene.add(tree);
-                walls.push(new THREE.Box3().setFromObject(trunk));
-            }
-            // Cacti (Desert)
+            // Low-poly Trees
             for(let i=0; i<30; i++) {
-                const x = Math.random()*200 + 50, z = (Math.random()-0.5)*400;
-                const cactus = new THREE.Mesh(new THREE.BoxGeometry(1.5, 6, 1.5), new THREE.MeshStandardMaterial({color:0x2ecc71}));
-                cactus.position.set(x, 3, z);
+                const tree = new THREE.Mesh(new THREE.BoxGeometry(2, 8, 2), new THREE.MeshBasicMaterial({color: 0x004400}));
+                tree.position.set(-Math.random()*100 - 10, 4, (Math.random()-0.5)*100);
+                scene.add(tree);
+                objects.push(new THREE.Box3().setFromObject(tree));
+            }
+            // Low-poly Cacti
+            for(let i=0; i<20; i++) {
+                const cactus = new THREE.Mesh(new THREE.BoxGeometry(1, 5, 1), new THREE.MeshBasicMaterial({color: 0x00ff00}));
+                cactus.position.set(Math.random()*100 + 10, 2.5, (Math.random()-0.5)*100);
                 scene.add(cactus);
-                walls.push(new THREE.Box3().setFromObject(cactus));
+                objects.push(new THREE.Box3().setFromObject(cactus));
             }
         }
 
         function createLake() {
-            const lake = new THREE.Mesh(new THREE.CircleGeometry(25, 32), new THREE.MeshStandardMaterial({color:0x3498db, transparent:true, opacity:0.8}));
-            lake.rotation.x = -Math.PI/2; lake.position.set(60, 0.05, 60);
-            scene.add(lake);
-            
-            // Fountain
-            const geom = new THREE.BufferGeometry();
-            const pos = new Float32Array(300);
-            geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            const part = new THREE.Points(geom, new THREE.PointsMaterial({color: 0xffffff, size: 0.4}));
-            part.position.set(60, 0, 60);
-            scene.add(part);
-            particles.push({mesh: part, type: 'fountain'});
+            const water = new THREE.Mesh(new THREE.CircleGeometry(15, 16), new THREE.MeshBasicMaterial({color: 0x0088ff}));
+            water.rotation.x = -Math.PI/2; water.position.set(40, 0.1, 40);
+            scene.add(water);
+            // Fountain decoration
+            const fountain = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 4), new THREE.MeshBasicMaterial({color: 0xffffff}));
+            fountain.position.set(40, 2, 40);
+            scene.add(fountain);
         }
 
         function createCar() {
             car = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 6), new THREE.MeshStandardMaterial({color:0xe74c3c}));
-            body.position.y = 1.2; car.add(body);
-            const wG = new THREE.CylinderGeometry(0.5, 0.5, 0.8);
-            const wM = new THREE.MeshStandardMaterial({color:0x000000});
-            for(let i=0; i<4; i++) {
-                const w = new THREE.Mesh(wG, wM); w.rotation.z = Math.PI/2;
-                w.position.set(i%2==0?2:-2, 0.5, i<2?2:-2); car.add(w);
-            }
+            const body = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 6), new THREE.MeshBasicMaterial({color: 0xff0000}));
+            body.position.y = 1.5; car.add(body);
             car.position.set(10, 0, 10);
             scene.add(car);
         }
 
-        function createChests() {
-            for(let i=0; i<10; i++) {
-                const chest = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 1.2), new THREE.MeshStandardMaterial({color: 0xd4af37}));
-                chest.position.set((Math.random()-0.5)*400, 0.75, (Math.random()-0.5)*400);
-                scene.add(chest);
-                chests.push(chest);
-            }
-        }
-
         function createPet() {
-            pet = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshStandardMaterial({color: 0x00ffff, emissive: 0x00ffff}));
+            pet = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshBasicMaterial({color: 0xffff00}));
             scene.add(pet);
-        }
-
-        function createNPCs() {
-            const npc = new THREE.Mesh(new THREE.CapsuleGeometry(0.8, 2, 4), new THREE.MeshStandardMaterial({color: 0x34495e}));
-            npc.position.set(-15, 1.5, -15);
-            scene.add(npc);
-            npcs.push({mesh: npc, talk: "Find all 10 chests to win!"});
-        }
-
-        function handleJump() {
-            if(!isFlying && !isJumping) { vy = 0.5; isJumping = true; }
-            else if(isJumping) { isFlying = true; isJumping = false; vy = 0; }
-            else if(isFlying) { isFlying = false; }
-        }
-
-        function interact() {
-            if(isDriving) { isDriving = false; camera.position.y = 2; return; }
-            if(camera.position.distanceTo(car.position) < 8) isDriving = true;
         }
 
         function toggleBuild() {
             buildMode = !buildMode;
-            document.getElementById('mode').innerText = buildMode ? "Building" : "Walking";
+            document.getElementById('mode').innerText = buildMode ? "Build" : "Walk";
         }
 
-        function buildObject() {
+        function placeBlock() {
             if(!buildMode) return;
-            const block = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), new THREE.MeshStandardMaterial({color: 0x95a5a6}));
+            const b = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), new THREE.MeshBasicMaterial({color:0xffffff}));
             const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
-            block.position.copy(camera.position).add(dir.multiplyScalar(8));
-            block.position.y = 1; scene.add(block);
-            walls.push(new THREE.Box3().setFromObject(block));
+            b.position.copy(camera.position).add(dir.multiplyScalar(5));
+            b.position.y = 1; scene.add(b);
+            objects.push(new THREE.Box3().setFromObject(b));
         }
 
-        function animate() {
-            requestAnimationFrame(animate);
+        function toggleDrive() {
+            if(isDriving) {
+                isDriving = false; camera.position.y = 3;
+            } else if(camera.position.distanceTo(car.position) < 8) {
+                isDriving = true;
+            }
+        }
+
+        function loop() {
+            requestAnimationFrame(loop);
             if(isPaused) return;
-            let delta = clock.getDelta();
 
-            // 1. Time & Weather
-            sun.position.x = Math.sin(Date.now()*0.0005)*100;
-            sun.position.y = Math.cos(Date.now()*0.0005)*100;
-            if(Math.random() < 0.001) document.getElementById('weather').innerText = Math.random() > 0.5 ? "Rainy" : "Clear";
-
-            // 2. Movement
-            const speed = isDriving ? 1.5 : (keys['ShiftLeft'] ? 0.8 : 0.4);
-            const rotSpeed = 0.03;
-
-            if(keys['KeyA']) camera.rotation.y += rotSpeed;
-            if(keys['KeyD']) camera.rotation.y -= rotSpeed;
+            // 1. Movement
+            const sprint = keys['ShiftLeft'] ? 0.8 : 0.4;
+            const speed = isDriving ? 1.6 : sprint; // Car is 2x faster than sprint
+            
+            if(keys['KeyA']) camera.rotation.y += 0.04;
+            if(keys['KeyD']) camera.rotation.y -= 0.04;
 
             const dir = new THREE.Vector3();
             camera.getWorldDirection(dir);
             dir.y = 0; dir.normalize();
 
-            let moveX = 0, moveZ = 0;
-            if(keys['KeyW']) { moveX = dir.x * speed; moveZ = dir.z * speed; }
-            if(keys['KeyS']) { moveX = -dir.x * speed; moveZ = -dir.z * speed; }
+            let mx = 0, mz = 0;
+            if(keys['KeyW']) { mx = dir.x * speed; mz = dir.z * speed; }
+            if(keys['KeyS']) { mx = -dir.x * speed; mz = -dir.z * speed; }
 
-            // Physics & Collision
-            let nextPos = camera.position.clone().add(new THREE.Vector3(moveX, 0, moveZ));
-            let blocked = false;
-            if(!isFlying) {
-                walls.forEach(w => { if(w.containsPoint(nextPos)) blocked = true; });
+            if(isDriving) {
+                car.position.x += mx; car.position.z += mz;
+                car.rotation.y = camera.rotation.y + Math.PI;
+                camera.position.set(car.position.x, car.position.y + 4, car.position.z + 10);
+                camera.lookAt(car.position);
+            } else {
+                camera.position.x += mx; camera.position.z += mz;
+                // Simple Gravity/Jump
+                if(keys['Space'] && !isJumping) { vy = 0.4; isJumping = true; }
+                camera.position.y += vy;
+                if(isJumping) vy -= 0.02;
+                if(camera.position.y <= 3) { camera.position.y = 3; isJumping = false; vy = 0; }
             }
 
-            if(!blocked) {
-                if(isDriving) {
-                    car.position.x += moveX * 2.5; car.position.z += moveZ * 2.5;
-                    car.rotation.y = camera.rotation.y + Math.PI;
-                    camera.position.set(car.position.x, car.position.y+5, car.position.z + 15);
-                    camera.lookAt(car.position);
-                } else {
-                    camera.position.x = nextPos.x; camera.position.z = nextPos.z;
-                }
+            // 2. Pet Follow
+            pet.position.lerp(new THREE.Vector3(camera.position.x - 2, 2, camera.position.z - 2), 0.1);
+
+            // 3. Time (Color change only for speed)
+            dayTime += 0.001;
+            if(dayTime > 1) dayTime = 0;
+            if(dayTime > 0.8 || dayTime < 0.2) {
+                scene.background.setHex(0x000022); // Night
+                document.getElementById('time').innerText = "Night";
+            } else {
+                scene.background.setHex(0x87CEEB); // Day
+                document.getElementById('time').innerText = "Day";
             }
-
-            // Flying / Jumping
-            if(!isDriving) {
-                if(isFlying) {
-                    if(keys['Space']) camera.position.y += 0.5;
-                    if(keys['ShiftLeft']) camera.position.y -= 0.5;
-                } else {
-                    camera.position.y += vy; vy -= 0.02;
-                    if(camera.position.y < 2) { camera.position.y = 2; vy = 0; isJumping = false; }
-                }
-            }
-
-            // 3. Treasure Collection
-            chests.forEach((c, i) => {
-                if(c.visible && camera.position.distanceTo(c.position) < 5) {
-                    c.visible = false; score++;
-                    document.getElementById('score').innerText = score + "/10";
-                    showMsg("Treasure Found!");
-                }
-            });
-
-            // 4. Pet & NPCs
-            pet.position.lerp(new THREE.Vector3(camera.position.x+2, camera.position.y+1, camera.position.z+2), 0.1);
-            npcs.forEach(n => {
-                if(camera.position.distanceTo(n.mesh.position) < 8) showMsg(n.talk);
-            });
-
-            // 5. Fountain Particles
-            particles.forEach(p => {
-                const arr = p.mesh.geometry.attributes.position.array;
-                for(let i=0; i<300; i+=3) {
-                    arr[i+1] += 0.1;
-                    if(arr[i+1] > 10) arr[i+1] = 0;
-                }
-                p.mesh.geometry.attributes.position.needsUpdate = true;
-            });
 
             renderer.render(scene, camera);
-        }
-
-        function showMsg(t) {
-            const m = document.getElementById('msg');
-            m.innerText = t; m.style.display = 'block';
-            clearTimeout(window.msgTimer);
-            window.msgTimer = setTimeout(() => m.style.display = 'none', 2000);
         }
     </script>
 </body>
