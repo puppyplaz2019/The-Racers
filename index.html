@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Estate V61 - True Forward</title>
+    <title>Estate V62 - Custom Tips</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
         
@@ -27,8 +27,8 @@
 <body>
 
     <div id="overlay">
-        <h1>ESTATE V61</h1>
-        <p>Fixed Direction Vectors | Tip Jar Added</p>
+        <h1>ESTATE V62</h1>
+        <p>Tip Amount Feature Added</p>
         <button class="btn" onclick="start()">ENTER WORLD</button>
     </div>
 
@@ -45,7 +45,7 @@
         <button class="tip-btn" onclick="sendTip()">💰 TIP THE DEVS</button>
     </div>
 
-    <div id="msg">THANKS FOR THE SUPPORT! :)</div>
+    <div id="msg"></div>
     <div id="crosshair"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -66,7 +66,7 @@
             raycaster = new THREE.Raycaster();
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 5, 10); // Start slightly back so we see the world
+            camera.position.set(0, 5, 10);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -89,7 +89,7 @@
             // INPUTS
             window.addEventListener('keydown', e => {
                 if (!keyStack.includes(e.code)) keyStack.push(e.code);
-                if (e.code === 'Space' && !isJumping && !isDriving) { vy = 0.6; isJumping = true; } // Stronger Jump
+                if (e.code === 'Space' && !isJumping && !isDriving) { vy = 0.6; isJumping = true; }
                 if (e.code === 'KeyB') buildMode = !buildMode;
                 if (e.code === 'KeyE') toggleDrive();
                 if (e.code === 'KeyR') deleteBlock();
@@ -106,10 +106,22 @@
             loop();
         }
 
+        // --- NEW TIPPING LOGIC ---
         function sendTip() {
-            const msg = document.getElementById('msg');
-            msg.style.opacity = 1;
-            setTimeout(() => { msg.style.opacity = 0; }, 2000);
+            // 1. Ask the user for an amount
+            let amount = prompt("Enter tip amount ($):", "10");
+
+            // 2. Validate the input (make sure they didn't press Cancel or type nothing)
+            if (amount != null && amount != "") {
+                const msg = document.getElementById('msg');
+                
+                // 3. Show the custom message
+                msg.innerText = "WOW! YOU TIPPED $" + amount + "! THANKS! :)";
+                msg.style.opacity = 1;
+
+                // 4. Hide it after 3 seconds
+                setTimeout(() => { msg.style.opacity = 0; }, 3000);
+            }
         }
 
         function createCar() {
@@ -122,20 +134,19 @@
         }
 
         function createVillage() {
-            const mat = new THREE.MeshBasicMaterial({color: 0x7f8c8d}); // Grey Walls
+            const mat = new THREE.MeshBasicMaterial({color: 0x7f8c8d});
             for(let i=0; i<3; i++) {
                 const h = new THREE.Mesh(new THREE.BoxGeometry(12, 12, 12), mat);
-                h.position.set(-20, 6, i * -30 - 10); // Spaced out
+                h.position.set(-20, 6, i * -30 - 10);
                 scene.add(h);
                 objects.push(h);
             }
         }
 
         function checkCollision(pos) {
-            // Collision Box size (Player width)
             const pBox = new THREE.Box3().setFromCenterAndSize(pos, new THREE.Vector3(2, 4, 2));
             for(let obj of objects) {
-                if(obj === car && isDriving) continue; // Don't collide with car if driving it
+                if(obj === car && isDriving) continue;
                 const oBox = new THREE.Box3().setFromObject(obj);
                 if(pBox.intersectsBox(oBox)) return true;
             }
@@ -149,7 +160,6 @@
             if (hits.length > 0) {
                 const p = hits[0].point;
                 const b = new THREE.Mesh(new THREE.BoxGeometry(3,3,3), new THREE.MeshBasicMaterial({color: 0xffffff}));
-                // Snap to Grid (3 units)
                 b.position.set(Math.round(p.x/3)*3, Math.round(p.y/3)*3 + 1.5, Math.round(p.z/3)*3);
                 scene.add(b);
                 objects.push(b);
@@ -163,7 +173,7 @@
             const hits = raycaster.intersectObjects(objects);
             if (hits.length > 0) {
                 const obj = hits[0].object;
-                if(obj.material.color.getHex() === 0xffffff) { // Only delete white blocks
+                if(obj.material.color.getHex() === 0xffffff) {
                     scene.remove(obj);
                     objects = objects.filter(o => o !== obj);
                     buildableSurface = buildableSurface.filter(s => s !== obj);
@@ -183,19 +193,17 @@
 
             const speed = isDriving ? 1.0 : 0.4;
             
-            // --- DIRECTION LOGIC (The Fix) ---
-            // We get the camera's true looking direction
+            // DIRECTION LOGIC
             const dir = new THREE.Vector3();
             camera.getWorldDirection(dir);
-            dir.y = 0; // Flatten it (don't walk into the ground)
+            dir.y = 0; 
             dir.normalize();
 
-            // Store next position to check collision
             let nextPos = camera.position.clone();
 
             if (topKey === 'KeyW') {
                 nextPos.add(dir.multiplyScalar(speed));
-                if(isDriving) car.position.add(dir.multiplyScalar(speed * 2)); // Car goes faster
+                if(isDriving) car.position.add(dir.multiplyScalar(speed * 2));
             } 
             else if (topKey === 'KeyS') {
                 nextPos.sub(dir.multiplyScalar(speed));
@@ -206,20 +214,16 @@
             else if (topKey === 'ArrowUp') playerPitch = Math.min(playerPitch + 0.04, 1.5);
             else if (topKey === 'ArrowDown') playerPitch = Math.max(playerPitch - 0.04, -1.5);
 
-            // Apply Move if safe
             if(!isDriving) {
-                // If W or S was pressed and no collision, move.
                 if((topKey === 'KeyW' || topKey === 'KeyS') && !checkCollision(nextPos)) {
                     camera.position.copy(nextPos);
                 }
             }
 
-            // --- VERTICAL PHYSICS ---
+            // VERTICAL PHYSICS
             if(!isDriving) {
                 camera.position.y += vy;
-                if(isJumping) {
-                    vy -= 0.03; // Gravity
-                }
+                if(isJumping) vy -= 0.03;
                 if(camera.position.y <= 5) {
                     camera.position.y = 5;
                     vy = 0;
@@ -227,14 +231,13 @@
                 }
             }
 
-            // --- SYNC CAMERA ---
+            // CAMERA SYNC
             if(isDriving) {
-                car.rotation.y = playerYaw - Math.PI; // Sync car rotation
+                car.rotation.y = playerYaw - Math.PI;
                 camera.position.set(car.position.x - Math.sin(playerYaw)*15, car.position.y + 8, car.position.z - Math.cos(playerYaw)*15);
                 camera.lookAt(car.position);
             } else {
-                // Apply rotation
-                camera.rotation.order = 'YXZ'; // Important for FPS look
+                camera.rotation.order = 'YXZ';
                 camera.rotation.y = playerYaw;
                 camera.rotation.x = playerPitch;
             }
