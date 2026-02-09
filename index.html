@@ -1,51 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Estate V65 - Bullion Gold</title>
+    <title>Estate V66 - High Shine Gold</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 15px; border-radius: 10px; border-left: 5px solid #FFDF00; pointer-events: none; }
-        #credit { position: absolute; bottom: 10px; left: 10px; color: rgba(255,255,255,0.4); font-size: 11px; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 15px; border-radius: 10px; border-left: 5px solid #FFD700; pointer-events: none; }
         #tipBox { position: absolute; top: 10px; right: 10px; pointer-events: auto; }
-        #overlay { position: absolute; width: 100%; height: 100%; background: #050505; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; border: 2px solid #FFDF00; box-sizing: border-box; }
-        .btn { padding: 15px 40px; font-size: 20px; cursor: pointer; background: #FFDF00; border: none; color: #000; font-weight: bold; border-radius: 5px; transition: 0.3s; }
-        .btn:hover { background: #fff; }
-        #msg { position: absolute; top: 40%; width: 100%; text-align: center; color: #FFDF00; font-size: 28px; font-weight: bold; opacity: 0; transition: opacity 0.5s; pointer-events: none; text-shadow: 0 0 10px #FFDF00; }
+        #overlay { position: absolute; width: 100%; height: 100%; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        .btn { padding: 15px 40px; font-size: 20px; cursor: pointer; background: #FFD700; border: none; color: #000; font-weight: bold; border-radius: 5px; }
+        #msg { position: absolute; top: 40%; width: 100%; text-align: center; color: #FFD700; font-size: 28px; font-weight: bold; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <div id="overlay">
-        <h1>ESTATE V65</h1>
-        <p>Bullion Gold Materials | Security Gate Active</p>
-        <button class="btn" onclick="start()">INITIALIZE WORLD</button>
+        <h1>ESTATE V66</h1>
+        <p>Reflective Gold Logic | Receipt Required</p>
+        <button class="btn" onclick="start()">START WORLD</button>
     </div>
 
     <div id="ui">
-        <b>W / S</b>: Movement | <b>A / D</b>: Turn<br>
-        <b>M</b>: Radio | <b>E</b>: Drive/Exit<br>
-        <b>Status</b>: <span id="carStatus" style="color:#e74c3c">STANDARD RED</span>
-        <hr>
-        Action: <span id="action" style="color:#FFDF00">IDLE</span>
+        <b>W / S</b>: Forward / Back | <b>A / D</b>: Turn<br>
+        <b>Radio</b>: M | <b>Drive</b>: E<br>
+        <b>Paint</b>: <span id="carStatus" style="color:#e74c3c">Standard Red</span>
     </div>
 
     <div id="tipBox">
-        <button style="padding:10px 20px; cursor:pointer; background:#FFDF00; border:none; font-weight:bold;" onclick="verifyReceipt()">💰 ENTER RECEIPT / TIP</button>
+        <button style="padding:10px 20px; cursor:pointer; background:#FFD700; border:none; font-weight:bold;" onclick="verifyReceipt()">💰 ENTER RECEIPT</button>
     </div>
 
-    <div id="credit">Powered by Google Gemini | Logic: Priority Input</div>
-    <div id="msg"></div>
+    <div id="msg">SHINE UNLOCKED</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        let scene, camera, renderer, car, carBody, audioCtx, oscillator;
-        let objects = [], buildableSurface = [], keyStack = [];
+        let scene, camera, renderer, car, carBody, keyStack = [];
         let playerYaw = 0, playerPitch = 0, vy = 0, isJumping = false, isDriving = false;
 
-        function start() {
-            document.getElementById('overlay').style.display = 'none';
-            init();
-        }
+        function start() { document.getElementById('overlay').style.display = 'none'; init(); }
 
         function init() {
             scene = new THREE.Scene();
@@ -56,26 +47,27 @@
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.toneMapping = THREE.ReinhardToneMapping; // Better colors
+            renderer.outputEncoding = THREE.sRGBEncoding; // Enables richer colors
             document.body.appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-            const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-            sun.position.set(5, 50, 10);
-            scene.add(sun);
+            // BRIGHT LIGHTS (Required for shine)
+            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+            const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            mainLight.position.set(10, 20, 10);
+            scene.add(mainLight);
 
-            // Floor
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshStandardMaterial({color: 0x1b5e20}));
+            const fillLight = new THREE.PointLight(0xffffff, 1);
+            fillLight.position.set(-10, 10, -10);
+            scene.add(fillLight);
+
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshStandardMaterial({color: 0x222222}));
             floor.rotation.x = -Math.PI/2; 
             scene.add(floor); 
-            buildableSurface.push(floor);
 
-            createVillage();
             createCar();
 
             window.addEventListener('keydown', e => {
                 if (!keyStack.includes(e.code)) keyStack.push(e.code);
-                if (e.code === 'KeyM') cycleRadio();
                 if (e.code === 'KeyE') isDriving = !isDriving;
                 if (e.code === 'Space' && !isJumping) { vy = 0.5; isJumping = true; }
             });
@@ -86,64 +78,44 @@
 
         function createCar() {
             car = new THREE.Group();
-            // Start as Red
+            // Start as Red Plastic
             carBody = new THREE.Mesh(
                 new THREE.BoxGeometry(4, 2, 7), 
-                new THREE.MeshStandardMaterial({color: 0xc0392b, metalness: 0.2, roughness: 0.8})
+                new THREE.MeshStandardMaterial({color: 0xc0392b, metalness: 0, roughness: 1})
             );
             carBody.position.y = 1; car.add(carBody);
-            car.position.set(10, 0, 10);
+            car.position.set(0, 0, 0);
             scene.add(car);
-            objects.push(carBody);
         }
 
         function verifyReceipt() {
-            let input = prompt("Please enter your Receipt Code or Tip Amount ($):");
-            const msg = document.getElementById('msg');
-            const status = document.getElementById('carStatus');
-
-            if (input === "DEV-MWUNR0XT6-100" || parseInt(input) >= 100) {
-                // APPLY IMAGE-ACCURATE GOLD
-                carBody.material.color.setHex(0xFFDF00); // Brighter Gold
-                carBody.material.metalness = 1.0;
-                carBody.material.roughness = 0.15;
-                carBody.material.emissive.setHex(0x443300); // Subsurface shine
+            let input = prompt("Receipt Code:");
+            if (input === "DEV-MWUNR0XT6-100") {
+                // THE SHINE SETTINGS
+                carBody.material.color.setHex(0xFFD700);
+                carBody.material.metalness = 1.0;  // Pure metal
+                carBody.material.roughness = 0.05; // Like a mirror
                 
-                status.innerText = "GOLD BULLION ACTIVE";
-                status.style.color = "#FFDF00";
-                msg.innerText = "GOLD BULLION AUTHORIZED";
-                msg.style.opacity = 1;
-                setTimeout(() => { msg.style.opacity = 0; }, 3000);
-            } else {
-                alert("Standard Receipt or Tip acknowledged.");
-            }
-        }
+                // Add "Internal Reflection" fake (Emissive)
+                carBody.material.emissive.setHex(0x554400); 
+                carBody.material.emissiveIntensity = 0.5;
 
-        function cycleRadio() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            // Basic sound logic here (omitted for brevity, matches V64)
-        }
-
-        function createVillage() {
-            for(let i=0; i<3; i++) {
-                const h = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), new THREE.MeshStandardMaterial({color: 0x333333}));
-                h.position.set(-20, 5, i * -25);
-                scene.add(h);
-                objects.push(h);
+                document.getElementById('carStatus').innerText = "24K BULLION GOLD";
+                document.getElementById('carStatus').style.color = "#FFD700";
+                document.getElementById('msg').style.opacity = 1;
+                setTimeout(() => { document.getElementById('msg').style.opacity = 0; }, 2000);
             }
         }
 
         function loop() {
             requestAnimationFrame(loop);
             const topKey = keyStack[keyStack.length - 1];
-            document.getElementById('action').innerText = topKey || "IDLE";
 
-            const speed = 0.5;
+            const speed = 0.4;
             const dir = new THREE.Vector3();
             camera.getWorldDirection(dir);
             dir.y = 0; dir.normalize();
 
-            // Movement Priority
             if (topKey === 'KeyW') {
                 if(isDriving) car.position.add(dir.clone().multiplyScalar(speed * 2));
                 else camera.position.add(dir.clone().multiplyScalar(speed));
