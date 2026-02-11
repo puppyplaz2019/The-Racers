@@ -1,18 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Estate V75 - Neon Circuit</title>
+    <title>Estate V76 - Neon Circuit Secret</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: #fff; }
         #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid #a020f0; pointer-events: none; }
-        
         #cheatBox { position: absolute; top: 10px; right: 10px; background: #111; padding: 15px; border: 2px solid #32cd32; border-radius: 10px; }
         #commentBox { position: absolute; bottom: 20px; left: 20px; background: rgba(10,10,10,0.9); padding: 15px; border: 1px solid #555; width: 250px; border-radius: 5px; }
-        #commentList { height: 100px; overflow-y: auto; font-size: 12px; margin-bottom: 5px; border-bottom: 1px solid #333; }
-        
+        #commentList { height: 80px; overflow-y: auto; font-size: 11px; margin-bottom: 5px; border-bottom: 1px solid #333; }
         #qrBox { position: absolute; bottom: 20px; right: 350px; background: #fff; padding: 5px; border-radius: 5px; }
         #djDeck { position: absolute; bottom: 20px; right: 20px; background: #111; padding: 15px; border: 2px solid #a020f0; width: 280px; }
-        
         input { background: #000; color: #32cd32; border: 1px solid #333; padding: 5px; width: 80%; }
         .btn { cursor: pointer; background: #32cd32; color: #000; border: none; padding: 5px 10px; font-weight: bold; }
         #overlay { position: absolute; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
@@ -21,38 +18,35 @@
 <body>
 
     <div id="overlay">
-        <h1 style="color:#a020f0; letter-spacing:10px;">NEON CIRCUIT V75</h1>
+        <h1 style="color:#a020f0; letter-spacing:10px;">NEON CIRCUIT V76</h1>
         <button class="btn" style="font-size:20px; padding:15px 40px;" onclick="start()">IGNITION</button>
     </div>
 
     <div id="ui">
-        <b>WASD</b>: Drive | <b>Cheat</b>: race2win<br>
+        <b>WASD</b>: Drive | <b>M</b>: Map<br>
         <b>Status</b>: <span id="carStatus" style="color:#B9F2FF">DIAMOND SHINE</span>
     </div>
 
     <div id="cheatBox">
-        <b>⌨️ CHEAT CONSOLE</b><br>
-        <input type="text" id="cheatInput" placeholder="Enter Code...">
-        <button class="btn" onclick="checkCheat()">ACTIVATE</button>
-        <button id="stealthBtn" class="btn" style="display:none; margin-top:5px; width:100%; background:#444;" onclick="toggleStealth()">GHOST MODE: OFF</button>
+        <b>⌨️ SYSTEM CONSOLE</b><br>
+        <input type="text" id="cheatInput" placeholder="Enter System Key...">
+        <button class="btn" onclick="checkCheat()">RUN</button>
+        <button id="stealthBtn" class="btn" style="display:none; margin-top:5px; width:100%; background:#4facfe;" onclick="toggleStealth()">GHOST MODE: OFF</button>
     </div>
 
     <div id="commentBox">
-        <b>💬 PUBLIC COMMENTS</b>
-        <div id="commentList">Welcome to the track!</div>
-        <input type="text" id="comInput" placeholder="Say something...">
+        <b>💬 LIVE FEED</b>
+        <div id="commentList">Track loaded. Waiting for drivers...</div>
+        <input type="text" id="comInput" placeholder="Type here...">
         <button class="btn" onclick="addComment()">SEND</button>
     </div>
 
-    <div id="qrBox">
-        <div id="qrcode"></div>
-        <div style="color:#000; font-size:8px; text-align:center;">SCAN FOR TRACK</div>
-    </div>
+    <div id="qrBox"><div id="qrcode"></div></div>
 
     <div id="djDeck">
         <b>🎵 DJ DECK</b><br>
-        <input type="text" id="musicLink" placeholder="YouTube URL...">
-        <button class="btn" onclick="playLink()">PLAY</button>
+        <input type="text" id="musicLink" placeholder="YouTube Link...">
+        <button class="btn" onclick="playLink()">LOAD</button>
         <iframe id="playerFrame" style="display:none; width:100%; height:60px; margin-top:10px;" allow="autoplay"></iframe>
     </div>
 
@@ -69,103 +63,84 @@
             new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 64, height: 64 });
         }
 
+        function createSign(text, pos) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 512; canvas.height = 128;
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,512,128);
+            ctx.strokeStyle = '#32cd32'; ctx.lineWidth = 10; ctx.strokeRect(0,0,512,128);
+            ctx.font = 'bold 80px Courier New'; ctx.fillStyle = '#32cd32'; ctx.textAlign = 'center';
+            ctx.fillText(text, 256, 90);
+            
+            const tex = new THREE.CanvasTexture(canvas);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: tex}));
+            sprite.scale.set(20, 5, 1);
+            sprite.position.set(pos[0], pos[1], pos[2]);
+            scene.add(sprite);
+        }
+
         function init() {
             scene = new THREE.Scene();
-            
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // CUSTOM NEON GRIDS
-            const gridFine = new THREE.GridHelper(1000, 100, 0x32cd32, 0x32cd32); // Green Thin
-            scene.add(gridFine);
-            const gridCoarse = new THREE.GridHelper(1000, 20, 0xa020f0, 0xa020f0); // Purple Thick
-            gridCoarse.position.y = 0.05;
-            scene.add(gridCoarse);
+            // GRID SYSTEM
+            scene.add(new THREE.GridHelper(2000, 200, 0x32cd32, 0x153315)); // Thin Green
+            const purpleGrid = new THREE.GridHelper(2000, 40, 0xa020f0, 0xa020f0); // Thick Purple
+            purpleGrid.position.y = 0.1; scene.add(purpleGrid);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-            const sun = new THREE.PointLight(0xffffff, 1);
-            sun.position.set(0, 50, 0);
-            scene.add(sun);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            const pL = new THREE.PointLight(0xffffff, 1); pL.position.set(0,100,0); scene.add(pL);
 
-            createTrackAndAudience();
-            createCar();
-
-            window.addEventListener('keydown', e => { if(!keyStack.includes(e.code)) keyStack.push(e.code); });
-            window.addEventListener('keyup', e => keyStack = keyStack.filter(k => k !== e.code));
-
-            animate();
-        }
-
-        function createTrackAndAudience() {
-            // Track markers (Blue neon pillars)
-            const trackPoints = [
-                [50, 0, 50], [150, 0, 50], [200, 0, 150], [150, 0, 250], [50, 0, 250], [-50, 0, 150]
-            ];
-            
-            trackPoints.forEach(p => {
-                const pole = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 20), new THREE.MeshBasicMaterial({color: 0x00ffff}));
-                pole.position.set(p[0], 10, p[2]);
-                scene.add(pole);
-
-                // Audience members on corners
-                for(let j=0; j<5; j++) {
-                    const fan = new THREE.Mesh(new THREE.BoxGeometry(2,4,2), new THREE.MeshStandardMaterial({color: Math.random() * 0xffffff}));
-                    fan.position.set(p[0] + 10 + j*3, 2, p[2] + 5);
+            // TRACK & SIGNS
+            const points = [[100,5,100], [300,5,0], [100,5,-300], [-200,5,-100], [0,5,200]];
+            points.forEach(p => {
+                createSign("race2win!", [p[0], 15, p[2]]);
+                // Audience Blocks
+                for(let i=0; i<8; i++){
+                    const fan = new THREE.Mesh(new THREE.BoxGeometry(2,4,2), new THREE.MeshBasicMaterial({color: Math.random()*0xffffff}));
+                    fan.position.set(p[0]+(Math.random()-0.5)*20, 2, p[2]+(Math.random()-0.5)*20);
                     scene.add(fan);
                 }
             });
-            
-            // "race2win!" Signage simulated via floating cubes
-            console.log("Track UI Loaded: Labels placed at turns.");
+
+            createCar();
+            window.addEventListener('keydown', e => { if(!keyStack.includes(e.code)) keyStack.push(e.code); });
+            window.addEventListener('keyup', e => keyStack = keyStack.filter(k => k !== e.code));
+            animate();
         }
 
         function createCar() {
             carGroup = new THREE.Group();
             const diamondMat = new THREE.MeshStandardMaterial({color: 0xB9F2FF, metalness: 1, roughness: 0.1, transparent: true});
+            chassis = new THREE.Mesh(new THREE.BoxGeometry(4, 0.8, 8), diamondMat); chassis.position.y = 0.5; carGroup.add(chassis);
+            cabin = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1, 4), new THREE.MeshStandardMaterial({color:0x000000, transparent:true}));
+            cabin.position.set(0, 1.2, -0.5); carGroup.add(cabin);
+            spoiler = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 1.5), diamondMat); spoiler.position.set(0, 1.5, 3.5); carGroup.add(spoiler);
             
-            chassis = new THREE.Mesh(new THREE.BoxGeometry(4, 0.8, 8), diamondMat);
-            chassis.position.y = 0.5;
-            carGroup.add(chassis);
-
-            cabin = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1, 3.5), new THREE.MeshStandardMaterial({color:0x000000, transparent:true}));
-            cabin.position.set(0, 1.2, 0.5);
-            carGroup.add(cabin);
-
-            spoiler = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 1.5), diamondMat);
-            spoiler.position.set(0, 1.5, -3); // Spoiler on the back
-            carGroup.add(spoiler);
-
-            const wGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.5);
-            const wMat = new THREE.MeshBasicMaterial({color: 0x222222});
+            const wMat = new THREE.MeshBasicMaterial({color: 0x333333});
             for(let i=0; i<4; i++) {
-                const w = new THREE.Mesh(wGeo, wMat);
+                const w = new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.8,0.5), wMat);
                 w.rotation.z = Math.PI/2;
-                w.position.set(i<2?2.2:-2.2, 0.5, i%2==0?2.5:-2.5);
+                w.position.set(i<2?2.3:-2.3, 0.5, i%2==0?2.5:-2.5);
                 carGroup.add(w);
             }
-
-            // Correct orientation: Flip the group so forward is +Z
-            carGroup.rotation.y = Math.PI;
             scene.add(carGroup);
         }
 
         function checkCheat() {
-            const val = document.getElementById('cheatInput').value.toLowerCase();
-            if(val === 'race2win') {
+            if(document.getElementById('cheatInput').value.toLowerCase() === 'race2win') {
                 document.getElementById('stealthBtn').style.display = 'block';
-                alert("STEALTH UNLOCKED");
+                alert("SYSTEM BREACHED: Ghost Tech Enabled.");
             }
         }
 
         function toggleStealth() {
             isStealth = !isStealth;
             const op = isStealth ? 0.1 : 1.0;
-            chassis.material.opacity = op;
-            cabin.material.opacity = op;
-            spoiler.material.opacity = op;
+            [chassis, cabin, spoiler].forEach(p => p.material.opacity = op);
             document.getElementById('stealthBtn').innerText = isStealth ? "GHOST MODE: ON" : "GHOST MODE: OFF";
         }
 
@@ -173,41 +148,37 @@
             const input = document.getElementById('comInput');
             if(input.value) {
                 const list = document.getElementById('commentList');
-                list.innerHTML += `<div><b>Guest:</b> ${input.value}</div>`;
-                input.value = "";
-                list.scrollTop = list.scrollHeight;
+                list.innerHTML += `<div><b>User:</b> ${input.value}</div>`;
+                input.value = ""; list.scrollTop = list.scrollHeight;
             }
         }
 
         function playLink() {
             const url = document.getElementById('musicLink').value;
-            const frame = document.getElementById('playerFrame');
             let id = url.includes("v=") ? url.split("v=")[1].split("&")[0] : url.split("youtu.be/")[1];
             if(id) {
-                frame.style.display = "block";
-                frame.src = `https://www.youtube.com/embed/${id}?autoplay=1`;
+                const f = document.getElementById('playerFrame');
+                f.style.display = "block";
+                f.src = `https://www.youtube.com/embed/${id}?autoplay=1`;
             }
         }
 
         function animate() {
             requestAnimationFrame(animate);
             const topKey = keyStack[keyStack.length - 1];
-            
-            if (topKey === 'KeyW') speed = Math.min(speed + 0.04, 1.5);
-            else if (topKey === 'KeyS') speed = Math.max(speed - 0.04, -0.8);
-            else speed *= 0.96;
+            if (topKey === 'KeyW') speed = Math.min(speed + 0.05, 2.0);
+            else if (topKey === 'KeyS') speed = Math.max(speed - 0.05, -1.0);
+            else speed *= 0.95;
 
-            if (topKey === 'KeyA') playerYaw += 0.05;
-            if (topKey === 'KeyD') playerYaw -= 0.05;
+            if (topKey === 'KeyA') playerYaw += 0.04;
+            if (topKey === 'KeyD') playerYaw -= 0.04;
 
             carGroup.rotation.y = playerYaw;
-            // Movement logic updated for forward orientation
             carGroup.position.x += Math.sin(playerYaw) * speed;
             carGroup.position.z += Math.cos(playerYaw) * speed;
 
-            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*15, 8, carGroup.position.z - Math.cos(playerYaw)*15);
+            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*18, 10, carGroup.position.z - Math.cos(playerYaw)*18);
             camera.lookAt(carGroup.position);
-
             renderer.render(scene, camera);
         }
     </script>
