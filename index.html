@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Estate V89 - Precision Drive</title>
+    <title>Estate V90 - Neon Supercar</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #0b0b0b; font-family: 'Courier New', monospace; color: #fff; }
+        body { margin: 0; overflow: hidden; background: #050505; font-family: 'Courier New', monospace; color: #fff; }
+        
+        /* UI LAYOUT */
         #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid #00ffff; pointer-events: none; z-index: 5; }
         
-        /* SEPARATED TOP UI */
-        #timerBox { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); padding: 12px; border: 2px solid #ffd700; border-radius: 10px; text-align: center; min-width: 180px; z-index: 10; }
-        #shareBtn { position: absolute; top: 10px; right: 10px; background: #32cd32; color: #000; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; border: 2px solid #fff; z-index: 20; }
-        #cheatBox { position: absolute; top: 70px; right: 10px; background: rgba(17,17,17,0.9); padding: 10px; border: 2px solid #32cd32; border-radius: 8px; z-index: 10; }
-
-        /* TIP JAR POSITIONED ABOVE DJ DECK */
-        #tipJar { position: absolute; bottom: 185px; right: 20px; background: linear-gradient(45deg, #c0c0c0, #ffd700); padding: 12px; border-radius: 10px; border: 3px solid #00ffff; color: #000; font-weight: bold; text-align: center; cursor: pointer; box-shadow: 0 0 20px #00ffff; z-index: 25;}
+        #timerBox { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); padding: 12px; border: 2px solid #00ffff; border-radius: 10px; text-align: center; min-width: 180px; z-index: 10; box-shadow: 0 0 15px #00ffff; }
         
+        #shareBtn { position: absolute; top: 10px; right: 20px; background: #32cd32; color: #000; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; border: 2px solid #fff; z-index: 20; }
+        
+        #cheatBox { position: absolute; top: 70px; right: 20px; background: rgba(17,17,17,0.9); padding: 10px; border: 2px solid #32cd32; border-radius: 8px; z-index: 10; }
+
+        /* TIP JAR */
+        #tipJar { position: absolute; bottom: 185px; right: 20px; background: linear-gradient(45deg, #444, #00ffff); padding: 12px; border-radius: 10px; border: 3px solid #fff; color: #fff; font-weight: bold; text-align: center; cursor: pointer; box-shadow: 0 0 20px #00ffff; z-index: 25; text-shadow: 1px 1px 2px #000;}
+
         #commentBox { position: absolute; bottom: 20px; left: 20px; background: rgba(10,10,10,0.9); padding: 15px; border: 1px solid #555; width: 300px; border-radius: 5px; z-index: 10; }
         #commentList { height: 100px; overflow-y: auto; font-size: 11px; margin-bottom: 5px; border-bottom: 1px solid #333; }
+        
         #djDeck { position: absolute; bottom: 20px; right: 20px; background: #111; padding: 15px; border: 2px solid #a020f0; width: 280px; z-index: 10; }
         
         input { background: #000; color: #32cd32; border: 1px solid #333; padding: 5px; }
@@ -26,26 +30,26 @@
 <body>
 
     <div id="overlay">
-        <h1 style="color:#ffd700; letter-spacing:10px;">V89: PRECISION DRIVE</h1>
-        <button class="btn" style="font-size:20px; padding:15px 40px;" onclick="start()">IGNITION</button>
+        <h1 style="color:#00ffff; letter-spacing:10px; text-shadow: 0 0 20px #00ffff;">V90: NEON SPEC</h1>
+        <button class="btn" style="font-size:20px; padding:15px 40px; background:#00ffff; color:#000;" onclick="start()">IGNITION</button>
     </div>
 
     <div id="timerBox">
-        <div style="font-size: 10px; color: #ffd700;">LAP TIME</div>
-        <div id="currTime" style="font-size: 24px; font-weight: bold;">00:00.00</div>
-        <div id="bestTime" style="font-size: 12px; color: #00ffff;">BEST: --:--.--</div>
+        <div style="font-size: 10px; color: #ccc;">LAP TIME</div>
+        <div id="currTime" style="font-size: 24px; font-weight: bold; color:#fff;">00:00.00</div>
+        <div id="bestTime" style="font-size: 12px; color: #32cd32;">BEST: --:--.--</div>
     </div>
 
     <div id="shareBtn" onclick="copyLink()">🔗 SHARE GAME</div>
 
     <div id="ui">
         <b>WASD</b>: Drive | <b>Status</b>: <span id="statusTxt" style="color:#00ffff">IDLE</span><br>
-        <small style="color: #ffd700;">Support: Jimmy Shanks (ESOFA)</small>
+        <small style="color: #ccc;">Support: Jimmy Shanks (ESOFA)</small>
     </div>
 
     <div id="cheatBox">
         <b>⌨️ CONSOLE</b><br>
-        <input type="text" id="cheatInput" placeholder="System Key..." style="width:100px;">
+        <input type="text" id="cheatInput" placeholder="Code..." style="width:100px;">
         <button class="btn" onclick="checkCheat()">RUN</button>
     </div>
 
@@ -56,7 +60,7 @@
 
     <div id="commentBox">
         <b>💬 LIVE FEED</b>
-        <div id="commentList">Ready to roll.</div>
+        <div id="commentList">Car Spec: Carbon Grey / Cyan Neon.</div>
         <div style="display:flex; gap:5px;">
             <input type="text" id="comInput" style="flex-grow:1;" placeholder="Talk...">
             <button class="btn" onclick="startVoice()">🎤</button>
@@ -88,14 +92,20 @@
 
         function init() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0a0f);
+            scene.background = new THREE.Color(0x050508);
+            scene.fog = new THREE.FogExp2(0x050508, 0.0015);
+
             camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 10000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.outputEncoding = THREE.sRGBEncoding;
             document.body.appendChild(renderer.domElement);
 
-            scene.add(new THREE.GridHelper(10000, 100, 0x32cd32, 0x223322));
+            // GRID
+            const grid = new THREE.GridHelper(10000, 150, 0x00ffff, 0x111111);
+            grid.position.y = 0.01; scene.add(grid);
 
+            // TRACK
             const curve = new THREE.CatmullRomCurve3([
                 new THREE.Vector3(0, 0, 0), new THREE.Vector3(1200, 0, 1200),
                 new THREE.Vector3(3000, 0, 1500), new THREE.Vector3(4500, 0, 0),
@@ -111,23 +121,29 @@
                 const p = points[i];
                 const next = points[(i + 1) % points.length];
                 const dir = new THREE.Vector3().subVectors(next, p).normalize();
-                const side = new THREE.Vector3(0, 1, 0).cross(dir).multiplyScalar(60);
+                const side = new THREE.Vector3(0, 1, 0).cross(dir).multiplyScalar(65);
                 verts.push(p.x + side.x, 0.05, p.z + side.z, p.x - side.x, 0.05, p.z - side.z);
             }
-            for (let i = 0; i < (points.length - 1) * 2; i += 2) {
-                indices.push(i, i+1, i+2, i+1, i+3, i+2);
-            }
+            for (let i = 0; i < (points.length - 1) * 2; i += 2) { indices.push(i, i+1, i+2, i+1, i+3, i+2); }
             roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
             roadGeo.setIndex(indices); roadGeo.computeVertexNormals();
-            scene.add(new THREE.Mesh(roadGeo, new THREE.MeshPhysicalMaterial({ color: 0x151515, metalness: 0.6, roughness: 0.3 })));
+            
+            // Dark Asphalt Road
+            const roadMat = new THREE.MeshPhysicalMaterial({ color: 0x111111, metalness: 0.2, roughness: 0.6 });
+            scene.add(new THREE.Mesh(roadGeo, roadMat));
 
-            const finishLine = new THREE.Mesh(new THREE.PlaneGeometry(120, 15), new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide}));
+            // START LINE
+            const finishLine = new THREE.Mesh(new THREE.PlaneGeometry(130, 15), new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide}));
             finishLine.rotation.x = Math.PI/2; finishLine.position.y = 0.08; scene.add(finishLine);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 1.3));
-            const sun = new THREE.DirectionalLight(0xffffff, 0.6); sun.position.set(500, 1000, 500); scene.add(sun);
+            // LIGHTING
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const sun = new THREE.DirectionalLight(0xffffff, 1); sun.position.set(200, 500, 200); scene.add(sun);
+            const rimLight = new THREE.DirectionalLight(0x00ffff, 0.8); rimLight.position.set(-200, 100, -200); scene.add(rimLight);
 
             createCar();
+            
+            // Listeners
             window.addEventListener('keydown', e => keys[e.code] = true);
             window.addEventListener('keyup', e => keys[e.code] = false);
             animate();
@@ -135,11 +151,74 @@
 
         function createCar() {
             carGroup = new THREE.Group();
-            const mat = new THREE.MeshPhysicalMaterial({ color: 0xffd700, metalness: 1, roughness: 0.01, clearcoat: 1 });
-            carGroup.add(new THREE.Mesh(new THREE.BoxGeometry(6, 1.2, 12), mat));
-            const cabin = new THREE.Mesh(new THREE.BoxGeometry(4, 1.5, 6), new THREE.MeshPhysicalMaterial({color: 0x000}));
-            cabin.position.set(0, 1.5, 1); carGroup.add(cabin);
-            carGroup.position.set(0, 0.6, -60);
+
+            // MATERIALS
+            const carbonMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.4, metalness: 0.5 }); // Matte Grey
+            const neonMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2 }); // Glowing Cyan
+            const glassMat = new THREE.MeshPhysicalMaterial({ color: 0x000000, metalness: 0.9, roughness: 0.1, transparent: true, opacity: 0.7 });
+
+            // 1. CHASSIS (Low & Wide)
+            const chassis = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.8, 10), carbonMat);
+            chassis.position.y = 0.6; 
+            carGroup.add(chassis);
+
+            // 2. REAR WIDENING (The "Hips")
+            const rearHips = new THREE.Mesh(new THREE.BoxGeometry(5, 0.9, 4), carbonMat);
+            rearHips.position.set(0, 0.7, -2.5);
+            carGroup.add(rearHips);
+
+            // 3. CABIN (Curved top)
+            const cabin = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.0, 4, 16), glassMat);
+            cabin.rotation.x = Math.PI / 2;
+            cabin.position.set(0, 1.4, 0.5);
+            cabin.scale.z = 1.2;
+            carGroup.add(cabin);
+
+            // 4. NEON STRIPES (Center Line)
+            const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.05, 10.1), neonMat);
+            stripe.position.set(0, 1.01, 0); // Sit just above chassis
+            carGroup.add(stripe);
+
+            // 5. SIDE NEON (The "C" curve look)
+            const sideL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 6), neonMat);
+            sideL.position.set(2.3, 0.5, 0);
+            carGroup.add(sideL);
+            const sideR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 6), neonMat);
+            sideR.position.set(-2.3, 0.5, 0);
+            carGroup.add(sideR);
+
+            // 6. WHEELS (with Neon Rims)
+            const wheelGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.6, 32);
+            const rimGeo = new THREE.TorusGeometry(0.6, 0.05, 16, 32);
+            const tireMat = new THREE.MeshStandardMaterial({ color: 0x050505 });
+
+            const wheelPositions = [
+                {x: 2.4, z: 3}, {x: -2.4, z: 3},  // Front
+                {x: 2.6, z: -3}, {x: -2.6, z: -3} // Rear (Wider)
+            ];
+
+            wheelPositions.forEach(pos => {
+                const w = new THREE.Mesh(wheelGeo, tireMat);
+                w.rotation.z = Math.PI / 2;
+                w.position.set(pos.x, 0.85, pos.z);
+                
+                // Add Neon Rim
+                const rim = new THREE.Mesh(rimGeo, neonMat);
+                rim.rotation.y = Math.PI / 2; // Face outward
+                // Align rim to wheel face
+                rim.position.x = pos.x > 0 ? 0.31 : -0.31; 
+                w.add(rim);
+
+                carGroup.add(w);
+            });
+
+            // 7. HEADLIGHTS
+            const hGeo = new THREE.BoxGeometry(1.2, 0.1, 0.2);
+            const hL = new THREE.Mesh(hGeo, neonMat); hL.position.set(1.5, 0.8, 4.9); carGroup.add(hL);
+            const hR = new THREE.Mesh(hGeo, neonMat); hR.position.set(-1.5, 0.8, 4.9); carGroup.add(hR);
+
+            // SPAWN POSITION (Behind Line)
+            carGroup.position.set(0, 0, -60);
             scene.add(carGroup);
         }
 
@@ -151,51 +230,74 @@
         function animate() {
             requestAnimationFrame(animate);
             
-            // Fixed Input Logic
-            if (keys['KeyW']) speed = Math.min(speed + 0.1, 4.5);
-            else if (keys['KeyS']) speed = Math.max(speed - 0.1, -1.5);
-            else speed *= 0.95;
+            // DRIVE LOGIC
+            let moving = false;
+            if (keys['KeyW']) { speed = Math.min(speed + 0.15, 5.0); moving = true; }
+            else if (keys['KeyS']) { speed = Math.max(speed - 0.15, -2.0); moving = true; }
+            else { speed *= 0.95; } // Coasting
 
-            if (keys['KeyA']) playerYaw += 0.04;
-            if (keys['KeyD']) playerYaw -= 0.04;
+            if (keys['KeyA'] && Math.abs(speed) > 0.1) playerYaw += 0.045;
+            if (keys['KeyD'] && Math.abs(speed) > 0.1) playerYaw -= 0.045;
 
             carGroup.rotation.y = playerYaw;
             carGroup.position.x += Math.sin(playerYaw) * speed;
             carGroup.position.z += Math.cos(playerYaw) * speed;
 
-            // RACE LOGIC
+            // RACE START LOGIC
             if (carGroup.position.z >= 0 && !racePrompted) {
-                racePrompted = true; speed = 0; keys = {}; // Force stop
-                if (confirm("Do you want to race?")) {
-                    startTime = Date.now(); lapActive = true;
-                } else {
-                    document.getElementById('commentList').innerHTML += `<div>Cruise mode active!</div>`;
-                }
+                // Force Stop
+                speed = 0; 
+                keys = {}; 
+                racePrompted = true;
+                
+                // Small timeout to ensure render loop catches the stop
+                setTimeout(() => {
+                    if (confirm("CROSSING START LINE.\nDo you want to begin a Timed Race?")) {
+                        startTime = Date.now(); 
+                        lapActive = true;
+                        document.getElementById('statusTxt').innerText = "RACING";
+                        document.getElementById('statusTxt').style.color = "#32cd32";
+                    } else {
+                        document.getElementById('statusTxt').innerText = "FREE ROAM";
+                        // Push car forward slightly so they don't trigger it again immediately
+                        speed = 0.5;
+                    }
+                }, 50);
             }
 
+            // LAP LOGIC
             if (lapActive) {
                 const dist = carGroup.position.length();
                 if (dist > 1000) checkpointReached = true;
-                if (dist < 40 && checkpointReached) {
+                
+                // Finish Line logic
+                if (dist < 50 && checkpointReached) {
                     const lap = Date.now() - startTime;
                     if (lap < bestTime) { 
                         bestTime = lap; 
                         document.getElementById('bestTime').innerText = "BEST: " + formatTime(bestTime);
                     }
-                    startTime = Date.now(); checkpointReached = false;
+                    // Auto-restart lap
+                    startTime = Date.now(); 
+                    checkpointReached = false;
                 }
                 document.getElementById('currTime').innerText = formatTime(Date.now() - startTime);
             }
 
-            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*40, 20, carGroup.position.z - Math.cos(playerYaw)*40);
+            // CAMERA FOLLOW
+            const camX = carGroup.position.x - Math.sin(playerYaw) * 40;
+            const camZ = carGroup.position.z - Math.cos(playerYaw) * 40;
+            camera.position.set(camX, 20, camZ);
             camera.lookAt(carGroup.position);
+
             renderer.render(scene, camera);
         }
 
         function openJimmyTip() { window.open("https://www.sanangelogives.org/organization/emmanuelschooloffinearts", '_blank'); }
         function addComment() { const i = document.getElementById('comInput'); if(i.value) { document.getElementById('commentList').innerHTML += `<div><b>Driver:</b> ${i.value}</div>`; i.value = ""; } }
         function startVoice() { const sr = window.SpeechRecognition || window.webkitSpeechRecognition; if(sr) { const r = new sr(); r.onresult = (e) => document.getElementById('comInput').value = e.results[0][0].transcript; r.start(); } }
-        function playLink() { const u = document.getElementById('musicLink').value; let id = u.includes("v=") ? u.split("v=")[1].split("&")[0] : u.split("youtu.be/")[1]; if(id) { document.getElementById('playerFrame').style.display = "block"; document.getElementById('playerFrame').src = `https://www.youtube.com/embed/${id}?autoplay=1`; } }
+        function checkCheat() { alert("No cheats active."); }
+        function playLink() { const u = document.getElementById('musicLink').value; let id = u.includes("v=") ? u.split("v=")[1].split("&")[0] : (u.includes("youtu.be/") ? u.split("youtu.be/")[1] : null); if(id) { document.getElementById('playerFrame').style.display = "block"; document.getElementById('playerFrame').src = `https://www.youtube.com/embed/${id}?autoplay=1`; } }
     </script>
 </body>
 </html>
