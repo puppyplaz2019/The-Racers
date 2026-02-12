@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Estate V83 - Voice & Terrain</title>
+    <title>Estate V85 - Wide Surface Edition</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: #fff; }
         #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid #00ffff; pointer-events: none; }
         #cheatBox { position: absolute; top: 10px; right: 10px; background: #111; padding: 10px; border: 2px solid #32cd32; border-radius: 10px; }
         
-        /* Tip Jar */
+        /* Jimmy Shanks Tip Jar */
         #tipJar { position: absolute; bottom: 180px; right: 20px; background: linear-gradient(45deg, #c0c0c0, #ffd700); padding: 12px; border-radius: 10px; border: 3px solid #00ffff; color: #000; font-weight: bold; text-align: center; cursor: pointer; box-shadow: 0 0 20px #00ffff; z-index: 20;}
 
         /* Chat & Voice */
@@ -15,7 +15,7 @@
         #commentList { height: 100px; overflow-y: auto; font-size: 11px; margin-bottom: 5px; border-bottom: 1px solid #333; }
         .chat-ctrl { display: flex; gap: 5px; }
         
-        /* DJ Deck Restored */
+        /* DJ Deck */
         #djDeck { position: absolute; bottom: 20px; right: 20px; background: #111; padding: 15px; border: 2px solid #a020f0; width: 280px; }
         input { background: #000; color: #32cd32; border: 1px solid #333; padding: 5px; flex-grow: 1; }
         .btn { cursor: pointer; background: #32cd32; color: #000; border: none; padding: 5px 10px; font-weight: bold; }
@@ -25,13 +25,13 @@
 <body>
 
     <div id="overlay">
-        <h1 style="color:#ffd700; letter-spacing:10px;">V83: VOICE DRIVE</h1>
+        <h1 style="color:#ffd700; letter-spacing:10px;">V85: SUPER-WIDE DRIVE</h1>
         <button class="btn" style="font-size:20px; padding:15px 40px;" onclick="start()">IGNITION</button>
     </div>
 
     <div id="ui">
-        <b>WASD</b>: Drive | <b>Status</b>: <span style="color:#00ffff">VOICE READY</span><br>
-        <small style="color: #ffd700;">Beneficiary: Jimmy Shanks (ESOFA)</small>
+        <b>WASD</b>: Drive | <b>Status</b>: <span style="color:#00ffff">SURFACE ALIGNED</span><br>
+        <small style="color: #ffd700;">Supporting: Jimmy Shanks (ESOFA)</small>
     </div>
 
     <div id="cheatBox">
@@ -48,17 +48,17 @@
 
     <div id="commentBox">
         <b>💬 LIVE FEED</b>
-        <div id="commentList">Voice recognition initialized. Click 🎤 to talk.</div>
+        <div id="commentList">Road elevation synced to grid floor.</div>
         <div class="chat-ctrl">
             <input type="text" id="comInput" placeholder="Type or use Voice...">
-            <button class="btn" onclick="startVoice()" title="Voice to Text">🎤</button>
+            <button class="btn" onclick="startVoice()">🎤</button>
             <button class="btn" onclick="addComment()">SEND</button>
         </div>
     </div>
 
     <div id="djDeck">
         <b>🎵 DJ DECK</b><br>
-        <input type="text" id="musicLink" placeholder="Paste YouTube URL Here...">
+        <input type="text" id="musicLink" placeholder="Paste YouTube URL...">
         <button class="btn" style="margin-top:5px; width:100%;" onclick="playLink()">LOAD TRACK</button>
         <iframe id="playerFrame" style="display:none; width:100%; height:60px; margin-top:10px;" allow="autoplay"></iframe>
     </div>
@@ -70,22 +70,12 @@
         let keyStack = [], playerYaw = 0, speed = 0, isStealth = false;
         let trailSegments = [], frameCount = 0;
 
-        // VOICE RECOGNITION SETUP
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
-        function startVoice() {
-            if (!recognition) return alert("Voice recognition not supported in this browser.");
-            recognition.start();
-            document.getElementById('comInput').placeholder = "Listening...";
-        }
-
+        function startVoice() { if (recognition) recognition.start(); }
         if(recognition) {
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                document.getElementById('comInput').value = transcript;
-                document.getElementById('comInput').placeholder = "Type or use Voice...";
-            };
+            recognition.onresult = (e) => { document.getElementById('comInput').value = e.results[0][0].transcript; };
         }
 
         function start() {
@@ -95,7 +85,6 @@
 
         function openJimmyTip() {
             window.open("https://www.sanangelogives.org/organization/emmanuelschooloffinearts", '_blank');
-            headlights.forEach(h => { h.material.emissiveIntensity = 5; setTimeout(() => h.material.emissiveIntensity = 1, 200); });
         }
 
         function init() {
@@ -106,33 +95,57 @@
             renderer.outputEncoding = THREE.sRGBEncoding;
             document.body.appendChild(renderer.domElement);
 
-            // GRIDS
-            scene.add(new THREE.GridHelper(5000, 100, 0x32cd32, 0x153315));
-            const purpleGrid = new THREE.GridHelper(5000, 20, 0xa020f0, 0xa020f0);
-            purpleGrid.position.y = 0.02; scene.add(purpleGrid);
+            // GRID
+            const gridMinor = new THREE.GridHelper(5000, 100, 0x32cd32, 0x112211);
+            scene.add(gridMinor);
+            const gridMajor = new THREE.GridHelper(5000, 20, 0xa020f0, 0x330033);
+            gridMajor.position.y = 0.01; 
+            scene.add(gridMajor);
 
-            // THE PHYSICAL ROAD (Sitting on top of grid)
+            // WIDE ROAD (Flush with grid)
             const curve = new THREE.CatmullRomCurve3([
                 new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(400, 0, 600),
-                new THREE.Vector3(1200, 0, 900),
-                new THREE.Vector3(1800, 0, 400),
-                new THREE.Vector3(1400, 0, -800),
+                new THREE.Vector3(500, 0, 800),
+                new THREE.Vector3(1500, 0, 1200),
+                new THREE.Vector3(2500, 0, 400),
+                new THREE.Vector3(1500, 0, -1000),
                 new THREE.Vector3(0, 0, 0)
             ]);
             curve.closed = true;
             
-            // Road is now a thick flat extrusion
-            const roadGeo = new THREE.TubeGeometry(curve, 200, 80, 4, false); // 4 sides = flat profile
+            // Width set to 120, using Shape to create a flat Ribbon on the ground
+            const points = curve.getPoints(200);
+            const roadGeo = new THREE.BufferGeometry();
+            const vertices = [];
+            const width = 60; // Total 120 width (60 each side)
+
+            for (let i = 0; i < points.length; i++) {
+                const p = points[i];
+                const nextP = points[(i + 1) % points.length];
+                const dir = new THREE.Vector3().subVectors(nextP, p).normalize();
+                const side = new THREE.Vector3(0, 1, 0).cross(dir).multiplyScalar(width);
+                
+                vertices.push(p.x + side.x, 0.05, p.z + side.z); // Flush + tiny offset
+                vertices.push(p.x - side.x, 0.05, p.z - side.z);
+            }
+            // Simple triangle strip for the road
+            const indices = [];
+            for (let i = 0; i < (points.length - 1) * 2; i += 2) {
+                indices.push(i, i + 1, i + 2);
+                indices.push(i + 1, i + 3, i + 2);
+            }
+            roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            roadGeo.setIndex(indices);
+            roadGeo.computeVertexNormals();
+
             const roadMat = new THREE.MeshPhysicalMaterial({
-                color: 0x080808, metalness: 0.9, roughness: 0.2, side: THREE.DoubleSide
+                color: 0x050505, metalness: 0.8, roughness: 0.1, side: THREE.DoubleSide, transparent: true, opacity: 0.95
             });
             const road = new THREE.Mesh(roadGeo, roadMat);
-            road.position.y = -79.5; // Offset to keep the top surface at Y ~ 0.5
             scene.add(road);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-            const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(100, 500, 100); scene.add(sun);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(500, 1000, 500); scene.add(sun);
 
             createCar();
             window.addEventListener('keydown', e => { if(!keyStack.includes(e.code)) keyStack.push(e.code); });
@@ -143,17 +156,17 @@
         function createCar() {
             carGroup = new THREE.Group();
             const superMat = new THREE.MeshPhysicalMaterial({
-                color: 0xffd700, emissive: 0x00ffff, emissiveIntensity: 0.4,
-                metalness: 1.0, roughness: 0.01, clearcoat: 1.0, transparent: true
+                color: 0xffd700, emissive: 0x00ffff, emissiveIntensity: 0.5,
+                metalness: 1.0, roughness: 0.01, clearcoat: 1.0
             });
             
             chassis = new THREE.Mesh(new THREE.BoxGeometry(6, 1.2, 12), superMat); chassis.position.y = 0.6; carGroup.add(chassis);
-            cabin = new THREE.Mesh(new THREE.BoxGeometry(3.5, 1.5, 6), new THREE.MeshPhysicalMaterial({color:0x000000, metalness:1, roughness:0, transparent:true}));
+            cabin = new THREE.Mesh(new THREE.BoxGeometry(3.5, 1.5, 6), new THREE.MeshPhysicalMaterial({color:0x000000, metalness:1}));
             cabin.position.set(0, 1.8, 1); carGroup.add(cabin);
             spoiler = new THREE.Mesh(new THREE.BoxGeometry(6, 0.3, 2.5), superMat); spoiler.position.set(0, 2.5, -5); carGroup.add(spoiler);
             
             const hGeo = new THREE.BoxGeometry(1.5, 0.5, 0.5);
-            const hMat = new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0x00ffff, emissiveIntensity: 1});
+            const hMat = new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0x00ffff, emissiveIntensity: 2});
             const h1 = new THREE.Mesh(hGeo, hMat); h1.position.set(2, 0.8, 6); carGroup.add(h1);
             const h2 = new THREE.Mesh(hGeo, hMat); h2.position.set(-2, 0.8, 6); carGroup.add(h2);
             headlights = [h1, h2];
@@ -202,14 +215,14 @@
             if(id) { 
                 const f = document.getElementById('playerFrame'); f.style.display = "block"; 
                 f.src = `https://www.youtube.com/embed/${id}?autoplay=1`; 
-            } else { alert("Please paste a valid YouTube URL!"); }
+            }
         }
 
         function animate() {
             requestAnimationFrame(animate);
             const topKey = keyStack[keyStack.length - 1];
-            if (topKey === 'KeyW') speed = Math.min(speed + 0.1, 4.0);
-            else if (topKey === 'KeyS') speed = Math.max(speed - 0.1, -1.5);
+            if (topKey === 'KeyW') speed = Math.min(speed + 0.12, 4.5);
+            else if (topKey === 'KeyS') speed = Math.max(speed - 0.12, -1.5);
             else speed *= 0.96;
 
             if (topKey === 'KeyA') playerYaw += 0.05;
@@ -223,11 +236,11 @@
             if(Math.abs(speed) > 0.1 && frameCount % 2 === 0) spawnTrail();
             for(let i = trailSegments.length - 1; i >= 0; i--) {
                 let s = trailSegments[i];
-                s.life -= 0.02; s.mesh.material.opacity = s.life; s.mesh.rotation.y += 0.1;
+                s.life -= 0.018; s.mesh.material.opacity = s.life;
                 if(s.life <= 0) { scene.remove(s.mesh); trailSegments.splice(i, 1); }
             }
 
-            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*30, 15, carGroup.position.z - Math.cos(playerYaw)*30);
+            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*35, 18, carGroup.position.z - Math.cos(playerYaw)*35);
             camera.lookAt(carGroup.position);
             renderer.render(scene, camera);
         }
