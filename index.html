@@ -1,21 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Estate V81 - Neon Highway Philanthropy</title>
+    <title>Estate V82 - Jimmy Shanks Edition</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: #fff; }
-        #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 2px solid #00ffff; pointer-events: none; }
-        
-        /* Cheat Console (TOP RIGHT) */
+        #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid #00ffff; pointer-events: none; }
         #cheatBox { position: absolute; top: 10px; right: 10px; background: #111; padding: 15px; border: 2px solid #32cd32; border-radius: 10px; z-index: 10; }
         
-        /* Tip Jar (BOTTOM RIGHT - ABOVE DJ) */
-        #tipJar { position: absolute; bottom: 180px; right: 20px; background: linear-gradient(45deg, #ffd700, #ff8c00); padding: 15px; border-radius: 10px; border: 2px solid #fff; color: #000; font-weight: bold; text-align: center; cursor: pointer; box-shadow: 0 0 20px #ffd700; transition: 0.3s; }
-        #tipJar:hover { transform: scale(1.05); box-shadow: 0 0 30px #fff; }
+        /* Jimmy Shanks Tip Jar */
+        #tipJar { position: absolute; bottom: 180px; right: 20px; background: linear-gradient(45deg, #c0c0c0, #ffd700); padding: 15px; border-radius: 10px; border: 3px solid #00ffff; color: #000; font-weight: bold; text-align: center; cursor: pointer; box-shadow: 0 0 25px #00ffff; transition: 0.2s; z-index: 20;}
+        #tipJar:active { transform: scale(0.9); }
 
         #commentBox { position: absolute; bottom: 20px; left: 20px; background: rgba(10,10,10,0.9); padding: 15px; border: 1px solid #555; width: 250px; border-radius: 5px; }
         #commentList { height: 80px; overflow-y: auto; font-size: 11px; margin-bottom: 5px; border-bottom: 1px solid #333; }
-        
         #djDeck { position: absolute; bottom: 20px; right: 20px; background: #111; padding: 15px; border: 2px solid #a020f0; width: 280px; }
         input { background: #000; color: #32cd32; border: 1px solid #333; padding: 5px; width: 80%; }
         .btn { cursor: pointer; background: #32cd32; color: #000; border: none; padding: 5px 10px; font-weight: bold; }
@@ -25,13 +22,13 @@
 <body>
 
     <div id="overlay">
-        <h1 style="color:#ffd700; letter-spacing:10px;">V81: FINE ARTS EDITION</h1>
+        <h1 style="color:#ffd700; letter-spacing:10px;">V82: PERCUSSION DRIVE</h1>
         <button class="btn" style="font-size:20px; padding:15px 40px;" onclick="start()">IGNITION</button>
     </div>
 
     <div id="ui">
-        <b>WASD</b>: Drive | <b>Status</b>: <span style="color:#00ffff">MAX SHINE</span><br>
-        <small style="color: #ffd700;">Supporting: San Angelo Emmanuel School of Fine Arts</small>
+        <b>WASD</b>: Drive | <b>Status</b>: <span style="color:#00ffff">HIGH SHINE</span><br>
+        <small style="color: #ffd700;">Beneficiary: Jimmy Shanks (ESOFA Percussion)</small>
     </div>
 
     <div id="cheatBox">
@@ -41,21 +38,21 @@
         <button id="stealthBtn" class="btn" style="display:none; margin-top:5px; width:100%; background:#4facfe;" onclick="toggleStealth()">GHOST MODE: OFF</button>
     </div>
 
-    <div id="tipJar" onclick="openDonation()">
-        🏺 SUPPORT THE ARTS<br>
-        <span style="font-size: 10px;">Tip San Angelo Emmanuel School</span>
+    <div id="tipJar" onclick="openJimmyTip()">
+        🥁 TIP JIMMY SHANKS<br>
+        <span style="font-size: 9px;">Emmanuel School of Fine Arts</span>
     </div>
 
     <div id="commentBox">
         <b>💬 LIVE FEED</b>
-        <div id="commentList">Donation Database: Connecting...</div>
-        <input type="text" id="comInput" placeholder="Type here...">
+        <div id="commentList">Direct link to ESOFA portal ready.</div>
+        <input type="text" id="comInput" placeholder="Comment...">
         <button class="btn" onclick="addComment()">SEND</button>
     </div>
 
     <div id="djDeck">
         <b>🎵 DJ DECK</b><br>
-        <input type="text" id="musicLink" placeholder="YouTube Link...">
+        <input type="text" id="musicLink" placeholder="Percussion Beats URL...">
         <button class="btn" onclick="playLink()">LOAD</button>
         <iframe id="playerFrame" style="display:none; width:100%; height:60px; margin-top:10px;" allow="autoplay"></iframe>
     </div>
@@ -63,7 +60,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <script>
-        let scene, camera, renderer, carGroup, chassis, cabin, spoiler;
+        let scene, camera, renderer, carGroup, chassis, cabin, spoiler, headlights = [];
         let keyStack = [], playerYaw = 0, speed = 0, isStealth = false;
         let trailSegments = [], frameCount = 0;
 
@@ -72,29 +69,24 @@
             init();
         }
 
-        // REDIRECT TO TRUSTED PAYMENT
-        function openDonation() {
-            // Note: You would replace this URL with the school's actual PayPal/Stripe/Website link
-            const schoolDonationURL = "https://www.paypal.com/donate"; 
-            window.open(schoolDonationURL, '_blank');
-            alert("Redirecting to secure payment for San Angelo Emmanuel School of Fine Arts...");
+        function openJimmyTip() {
+            // Points to the official Emmanuel School of Fine Arts giving page
+            const esofaLink = "https://www.sanangelogives.org/organization/emmanuelschooloffinearts"; 
+            window.open(esofaLink, '_blank');
+            // Flash lights like a drum beat
+            flashHeadlights();
         }
 
-        function createSign(text, pos) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = 512; canvas.height = 128;
-            ctx.fillStyle = '#000'; ctx.fillRect(0,0,512,128);
-            ctx.strokeStyle = '#32cd32'; ctx.lineWidth = 10; ctx.strokeRect(0,0,512,128);
-            ctx.font = 'bold 80px Courier New'; ctx.fillStyle = '#32cd32'; ctx.textAlign = 'center';
-            ctx.fillText(text, 256, 90);
-            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: new THREE.CanvasTexture(canvas)}));
-            sprite.scale.set(40, 10, 1); sprite.position.set(pos[0], pos[1], pos[2]); scene.add(sprite);
+        function flashHeadlights() {
+            headlights.forEach(h => {
+                h.material.emissiveIntensity = 5;
+                setTimeout(() => h.material.emissiveIntensity = 1, 150);
+            });
         }
 
         function init() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 4000);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.outputEncoding = THREE.sRGBEncoding;
@@ -104,23 +96,22 @@
             const purpleGrid = new THREE.GridHelper(5000, 20, 0xa020f0, 0xa020f0);
             purpleGrid.position.y = 0.05; scene.add(purpleGrid);
 
-            // WIDE ROAD
+            // WIDE NEON ROAD
             const curve = new THREE.CatmullRomCurve3([
                 new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(200, 0, 400),
-                new THREE.Vector3(600, 0, 600),
-                new THREE.Vector3(1000, 0, 200),
+                new THREE.Vector3(300, 0, 500),
+                new THREE.Vector3(900, 0, 800),
+                new THREE.Vector3(1500, 0, 300),
+                new THREE.Vector3(1200, 0, -600),
                 new THREE.Vector3(0, 0, 0)
             ]);
             curve.closed = true;
-            const roadGeo = new THREE.TubeGeometry(curve, 100, 40, 8, false);
-            const roadMat = new THREE.MeshPhysicalMaterial({color: 0x0a0a0a, metalness: 0.9, roughness: 0.1, side: THREE.DoubleSide});
-            const road = new THREE.Mesh(roadGeo, roadMat);
-            road.position.y = -39.5;
-            scene.add(road);
+            const roadGeo = new THREE.TubeGeometry(curve, 150, 60, 8, false);
+            const roadMat = new THREE.MeshPhysicalMaterial({color: 0x050505, metalness: 0.9, roughness: 0.1, side: THREE.DoubleSide});
+            const road = new THREE.Mesh(roadGeo, roadMat); road.position.y = -59.5; scene.add(road);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-            const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(200, 500, 200); scene.add(sun);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(100, 500, 100); scene.add(sun);
 
             createCar();
             window.addEventListener('keydown', e => { if(!keyStack.includes(e.code)) keyStack.push(e.code); });
@@ -131,30 +122,36 @@
         function createCar() {
             carGroup = new THREE.Group();
             const superMat = new THREE.MeshPhysicalMaterial({
-                color: 0xffd700, emissive: 0x00ffff, emissiveIntensity: 0.5,
-                metalness: 1.0, roughness: 0.02, clearcoat: 1.0, transparent: true
+                color: 0xffd700, emissive: 0x00ffff, emissiveIntensity: 0.4,
+                metalness: 1.0, roughness: 0.01, clearcoat: 1.0, transparent: true
             });
             
-            // Fixed Orientation: +Z is Forward
-            chassis = new THREE.Mesh(new THREE.BoxGeometry(5, 1, 10), superMat); chassis.position.y = 0.6; carGroup.add(chassis);
-            cabin = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, 5), new THREE.MeshPhysicalMaterial({color:0x000000, metalness:1, roughness:0, transparent:true}));
-            cabin.position.set(0, 1.5, 1); carGroup.add(cabin);
-            spoiler = new THREE.Mesh(new THREE.BoxGeometry(5, 0.2, 2), superMat); spoiler.position.set(0, 2, -4); carGroup.add(spoiler);
+            // Fixed Forward orientation (+Z)
+            chassis = new THREE.Mesh(new THREE.BoxGeometry(6, 1.2, 12), superMat); chassis.position.y = 0.6; carGroup.add(chassis);
+            cabin = new THREE.Mesh(new THREE.BoxGeometry(3.5, 1.5, 6), new THREE.MeshPhysicalMaterial({color:0x000000, metalness:1, roughness:0, transparent:true}));
+            cabin.position.set(0, 1.8, 1); carGroup.add(cabin);
+            spoiler = new THREE.Mesh(new THREE.BoxGeometry(6, 0.3, 2.5), superMat); spoiler.position.set(0, 2.5, -5); carGroup.add(spoiler);
             
+            // Headlights
+            const hGeo = new THREE.BoxGeometry(1.5, 0.5, 0.5);
+            const hMat = new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0x00ffff, emissiveIntensity: 1});
+            const h1 = new THREE.Mesh(hGeo, hMat); h1.position.set(2, 0.8, 6); carGroup.add(h1);
+            const h2 = new THREE.Mesh(hGeo, hMat); h2.position.set(-2, 0.8, 6); carGroup.add(h2);
+            headlights = [h1, h2];
+
             for(let i=0; i<4; i++) {
-                const w = new THREE.Mesh(new THREE.CylinderGeometry(1,1,0.7), new THREE.MeshStandardMaterial({color: 0x111111}));
-                w.rotation.z = Math.PI/2; w.position.set(i<2?2.8:-2.8, 0.6, i%2==0?3.5:-3.5); carGroup.add(w);
+                const w = new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,0.8), new THREE.MeshStandardMaterial({color: 0x111111}));
+                w.rotation.z = Math.PI/2; w.position.set(i<2?3.2:-3.2, 0.6, i%2==0?4:-4); carGroup.add(w);
             }
             scene.add(carGroup);
         }
 
         function spawnTrail() {
-            const geo = new THREE.OctahedronGeometry(0.7, 0);
+            const geo = new THREE.OctahedronGeometry(0.8, 0);
             const mat = new THREE.MeshPhongMaterial({color: 0xff00ff, emissive: 0xff00ff, transparent: true});
             const crystal = new THREE.Mesh(geo, mat);
             crystal.position.copy(carGroup.position); crystal.position.y = 1;
-            scene.add(crystal);
-            trailSegments.push({mesh: crystal, life: 1.0});
+            scene.add(crystal); trailSegments.push({mesh: crystal, life: 1.0});
         }
 
         function checkCheat() {
@@ -171,18 +168,18 @@
             document.getElementById('stealthBtn').innerText = isStealth ? "GHOST MODE: ON" : "GHOST MODE: OFF";
         }
 
-        function addComment() { const i = document.getElementById('comInput'); if(i.value) { document.getElementById('commentList').innerHTML += `<div><b>User:</b> ${i.value}</div>`; i.value = ""; }}
+        function addComment() { const i = document.getElementById('comInput'); if(i.value) { document.getElementById('commentList').innerHTML += `<div><b>Driver:</b> ${i.value}</div>`; i.value = ""; }}
         function playLink() { const u = document.getElementById('musicLink').value; let id = u.includes("v=") ? u.split("v=")[1].split("&")[0] : u.split("youtu.be/")[1]; if(id) { const f = document.getElementById('playerFrame'); f.style.display = "block"; f.src = `https://www.youtube.com/embed/${id}?autoplay=1`; }}
 
         function animate() {
             requestAnimationFrame(animate);
             const topKey = keyStack[keyStack.length - 1];
-            if (topKey === 'KeyW') speed = Math.min(speed + 0.08, 3.5);
-            else if (topKey === 'KeyS') speed = Math.max(speed - 0.08, -1.2);
+            if (topKey === 'KeyW') speed = Math.min(speed + 0.1, 4.0);
+            else if (topKey === 'KeyS') speed = Math.max(speed - 0.1, -1.5);
             else speed *= 0.96;
 
-            if (topKey === 'KeyA') playerYaw += 0.055;
-            if (topKey === 'KeyD') playerYaw -= 0.055;
+            if (topKey === 'KeyA') playerYaw += 0.05;
+            if (topKey === 'KeyD') playerYaw -= 0.05;
 
             carGroup.rotation.y = playerYaw;
             carGroup.position.x += Math.sin(playerYaw) * speed;
@@ -192,11 +189,11 @@
             if(Math.abs(speed) > 0.1 && frameCount % 2 === 0) spawnTrail();
             for(let i = trailSegments.length - 1; i >= 0; i--) {
                 let s = trailSegments[i];
-                s.life -= 0.015; s.mesh.material.opacity = s.life; s.mesh.rotation.x += 0.1;
+                s.life -= 0.02; s.mesh.material.opacity = s.life; s.mesh.rotation.y += 0.1;
                 if(s.life <= 0) { scene.remove(s.mesh); trailSegments.splice(i, 1); }
             }
 
-            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*25, 15, carGroup.position.z - Math.cos(playerYaw)*25);
+            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*30, 15, carGroup.position.z - Math.cos(playerYaw)*30);
             camera.lookAt(carGroup.position);
             renderer.render(scene, camera);
         }
