@@ -1,24 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Estate V86 - Public Release</title>
+    <title>Estate V87 - Leaderboard Edition</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: #fff; }
         #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid #00ffff; pointer-events: none; }
-        
-        /* SHARE BUTTON (TOP LEFT) */
-        #shareBtn { position: absolute; top: 10px; left: 250px; background: #32cd32; color: #000; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; border: 2px solid #fff; pointer-events: auto; }
-        #shareBtn:active { transform: scale(0.95); }
-
-        /* Jimmy Shanks Tip Jar */
+        #timerBox { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); padding: 15px; border: 2px solid #ffd700; border-radius: 10px; text-align: center; min-width: 200px; }
+        #shareBtn { position: absolute; top: 10px; left: 260px; background: #32cd32; color: #000; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; border: 2px solid #fff; pointer-events: auto; }
         #tipJar { position: absolute; bottom: 180px; right: 20px; background: linear-gradient(45deg, #c0c0c0, #ffd700); padding: 12px; border-radius: 10px; border: 3px solid #00ffff; color: #000; font-weight: bold; text-align: center; cursor: pointer; box-shadow: 0 0 20px #00ffff; z-index: 20;}
-
         #commentBox { position: absolute; bottom: 20px; left: 20px; background: rgba(10,10,10,0.9); padding: 15px; border: 1px solid #555; width: 300px; border-radius: 5px; }
         #commentList { height: 100px; overflow-y: auto; font-size: 11px; margin-bottom: 5px; border-bottom: 1px solid #333; }
-        .chat-ctrl { display: flex; gap: 5px; }
-        
         #djDeck { position: absolute; bottom: 20px; right: 20px; background: #111; padding: 15px; border: 2px solid #a020f0; width: 280px; }
-        input { background: #000; color: #32cd32; border: 1px solid #333; padding: 5px; flex-grow: 1; }
+        input { background: #000; color: #32cd32; border: 1px solid #333; padding: 5px; }
         .btn { cursor: pointer; background: #32cd32; color: #000; border: none; padding: 5px 10px; font-weight: bold; }
         #overlay { position: absolute; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
     </style>
@@ -26,12 +19,18 @@
 <body>
 
     <div id="overlay">
-        <h1 style="color:#ffd700; letter-spacing:10px;">V86: GLOBAL CIRCUIT</h1>
-        <button class="btn" style="font-size:20px; padding:15px 40px;" onclick="start()">IGNITION</button>
+        <h1 style="color:#ffd700; letter-spacing:10px;">V87: LAP CHALLENGE</h1>
+        <button class="btn" style="font-size:20px; padding:15px 40px;" onclick="start()">START ENGINES</button>
+    </div>
+
+    <div id="timerBox">
+        <div style="font-size: 10px; color: #ffd700;">CURRENT LAP</div>
+        <div id="currTime" style="font-size: 24px; font-weight: bold;">00:00.00</div>
+        <div id="bestTime" style="font-size: 12px; color: #00ffff; margin-top: 5px;">BEST: --:--.--</div>
     </div>
 
     <div id="ui">
-        <b>WASD</b>: Drive | <b>Status</b>: <span id="statusTxt" style="color:#00ffff">PUBLIC READY</span><br>
+        <b>WASD</b>: Drive | <b>Status</b>: <span style="color:#00ffff">RACING</span><br>
         <small style="color: #ffd700;">Support: Jimmy Shanks (ESOFA)</small>
     </div>
 
@@ -44,9 +43,9 @@
 
     <div id="commentBox">
         <b>💬 LIVE FEED</b>
-        <div id="commentList">Road width: 120. Surface: Flush.</div>
-        <div class="chat-ctrl">
-            <input type="text" id="comInput" placeholder="Speak/Type...">
+        <div id="commentList">Cross the white line to start!</div>
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="comInput" style="flex-grow:1;" placeholder="Speak/Type...">
             <button class="btn" onclick="startVoice()">🎤</button>
             <button class="btn" onclick="addComment()">SEND</button>
         </div>
@@ -54,7 +53,7 @@
 
     <div id="djDeck">
         <b>🎵 DJ DECK</b><br>
-        <input type="text" id="musicLink" placeholder="Paste YouTube Link...">
+        <input type="text" id="musicLink" style="width:90%;" placeholder="YouTube URL...">
         <button class="btn" style="margin-top:5px; width:100%;" onclick="playLink()">LOAD TRACK</button>
         <iframe id="playerFrame" style="display:none; width:100%; height:60px; margin-top:10px;" allow="autoplay"></iframe>
     </div>
@@ -62,40 +61,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <script>
-        let scene, camera, renderer, carGroup, chassis, cabin, spoiler, headlights = [];
+        let scene, camera, renderer, carGroup, headlights = [];
         let keyStack = [], playerYaw = 0, speed = 0;
-        let trailSegments = [], frameCount = 0;
+        let startTime = 0, bestTime = Infinity, lapActive = false, checkpointReached = false;
 
-        // SHARE LOGIC
+        function start() { document.getElementById('overlay').style.display = 'none'; init(); }
+
         function copyLink() {
-            const el = document.createElement('textarea');
-            el.value = window.location.href;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            const btn = document.getElementById('shareBtn');
-            const old = btn.innerText;
-            btn.innerText = "✅ COPIED!";
-            btn.style.background = "#fff";
-            setTimeout(() => { btn.innerText = old; btn.style.background = "#32cd32"; }, 2000);
-        }
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = SpeechRecognition ? new SpeechRecognition() : null;
-        function startVoice() { if (recognition) recognition.start(); }
-        if(recognition) {
-            recognition.onresult = (e) => { document.getElementById('comInput').value = e.results[0][0].transcript; };
-        }
-
-        function start() {
-            document.getElementById('overlay').style.display = 'none';
-            init();
-        }
-
-        function openJimmyTip() {
-            window.open("https://www.sanangelogives.org/organization/emmanuelschooloffinearts", '_blank');
-            headlights.forEach(h => { h.material.emissiveIntensity = 8; setTimeout(() => h.material.emissiveIntensity = 2, 200); });
+            const el = document.createElement('textarea'); el.value = window.location.href;
+            document.body.appendChild(el); el.select(); document.execCommand('copy');
+            document.body.removeChild(el); document.getElementById('shareBtn').innerText = "✅ COPIED!";
+            setTimeout(() => { document.getElementById('shareBtn').innerText = "🔗 SHARE GAME"; }, 2000);
         }
 
         function init() {
@@ -105,18 +81,15 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // FLUSH GRID SYSTEM
-            scene.add(new THREE.GridHelper(10000, 200, 0x32cd32, 0x112211));
-            const pGrid = new THREE.GridHelper(10000, 40, 0xa020f0, 0x330033);
-            pGrid.position.y = 0.01; scene.add(pGrid);
+            scene.add(new THREE.GridHelper(10000, 100, 0x32cd32, 0x112211));
 
-            // SUPER-WIDE ROAD (Flush at Y=0.05)
+            // THE TRACK
             const curve = new THREE.CatmullRomCurve3([
                 new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(800, 0, 1000),
-                new THREE.Vector3(2000, 0, 1500),
-                new THREE.Vector3(3500, 0, 500),
-                new THREE.Vector3(2000, 0, -1500),
+                new THREE.Vector3(1000, 0, 1000),
+                new THREE.Vector3(2500, 0, 1500), // Checkpoint near here
+                new THREE.Vector3(4000, 0, 0),
+                new THREE.Vector3(2000, 0, -2000),
                 new THREE.Vector3(0, 0, 0)
             ]);
             curve.closed = true;
@@ -125,28 +98,28 @@
             const roadGeo = new THREE.BufferGeometry();
             const verts = [];
             const indices = [];
-            const w = 60; // Total width 120
-
             for (let i = 0; i < points.length; i++) {
                 const p = points[i];
                 const next = points[(i + 1) % points.length];
                 const dir = new THREE.Vector3().subVectors(next, p).normalize();
-                const side = new THREE.Vector3(0, 1, 0).cross(dir).multiplyScalar(w);
+                const side = new THREE.Vector3(0, 1, 0).cross(dir).multiplyScalar(60);
                 verts.push(p.x + side.x, 0.05, p.z + side.z); 
                 verts.push(p.x - side.x, 0.05, p.z - side.z);
             }
             for (let i = 0; i < (points.length - 1) * 2; i += 2) {
-                indices.push(i, i + 1, i + 2); indices.push(i + 1, i + 3, i + 2);
+                indices.push(i, i+1, i+2, i+1, i+3, i+2);
             }
             roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
             roadGeo.setIndex(indices);
             roadGeo.computeVertexNormals();
+            scene.add(new THREE.Mesh(roadGeo, new THREE.MeshPhysicalMaterial({ color: 0x0a0a0a, metalness: 0.9, roughness: 0.1 })));
 
-            const roadMat = new THREE.MeshPhysicalMaterial({ color: 0x0a0a0a, metalness: 0.9, roughness: 0.05, side: THREE.DoubleSide });
-            scene.add(new THREE.Mesh(roadGeo, roadMat));
+            // FINISH LINE
+            const finishLine = new THREE.Mesh(new THREE.PlaneGeometry(120, 10), new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide}));
+            finishLine.rotation.x = Math.PI/2; finishLine.position.y = 0.1; scene.add(finishLine);
 
             scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(1000, 2000, 1000); scene.add(sun);
+            const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(500, 1000, 500); scene.add(sun);
 
             createCar();
             window.addEventListener('keydown', e => { if(!keyStack.includes(e.code)) keyStack.push(e.code); });
@@ -156,22 +129,16 @@
 
         function createCar() {
             carGroup = new THREE.Group();
-            const shine = new THREE.MeshPhysicalMaterial({ color: 0xffd700, metalness: 1, roughness: 0.01, clearcoat: 1 });
-            chassis = new THREE.Mesh(new THREE.BoxGeometry(6, 1.2, 12), shine); chassis.position.y = 0.6; carGroup.add(chassis);
-            cabin = new THREE.Mesh(new THREE.BoxGeometry(4, 1.5, 6), new THREE.MeshPhysicalMaterial({color: 0x000, metalness: 1}));
-            cabin.position.set(0, 1.8, 1); carGroup.add(cabin);
-            spoiler = new THREE.Mesh(new THREE.BoxGeometry(6, 0.4, 3), shine); spoiler.position.set(0, 2.6, -5); carGroup.add(spoiler);
-            
-            const hMat = new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0x00ffff, emissiveIntensity: 2});
-            const h1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 0.5), hMat); h1.position.set(2, 0.8, 6); carGroup.add(h1);
-            const h2 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 0.5), hMat); h2.position.set(-2, 0.8, 6); carGroup.add(h2);
-            headlights = [h1, h2];
-
-            for(let i=0; i<4; i++) {
-                const w = new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,1), new THREE.MeshStandardMaterial({color: 0x111}));
-                w.rotation.z = Math.PI/2; w.position.set(i<2?3.2:-3.2, 0.6, i%2==0?4.5:-4.5); carGroup.add(w);
-            }
+            const mat = new THREE.MeshPhysicalMaterial({ color: 0xffd700, metalness: 1, roughness: 0.01, clearcoat: 1 });
+            const chassis = new THREE.Mesh(new THREE.BoxGeometry(6, 1.2, 12), mat); chassis.position.y = 0.6; carGroup.add(chassis);
+            const cabin = new THREE.Mesh(new THREE.BoxGeometry(4, 1.5, 6), new THREE.MeshPhysicalMaterial({color: 0x000})); cabin.position.set(0, 1.8, 1); carGroup.add(cabin);
+            const spoiler = new THREE.Mesh(new THREE.BoxGeometry(6, 0.4, 3), mat); spoiler.position.set(0, 2.6, -5); carGroup.add(spoiler);
             scene.add(carGroup);
+        }
+
+        function formatTime(ms) {
+            let m = Math.floor(ms / 60000); let s = Math.floor((ms % 60000) / 1000); let c = Math.floor((ms % 1000) / 10);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${c.toString().padStart(2, '0')}`;
         }
 
         function animate() {
@@ -180,7 +147,6 @@
             if (k === 'KeyW') speed = Math.min(speed + 0.15, 5.0);
             else if (k === 'KeyS') speed = Math.max(speed - 0.15, -2.0);
             else speed *= 0.95;
-
             if (k === 'KeyA') playerYaw += 0.05;
             if (k === 'KeyD') playerYaw -= 0.05;
 
@@ -188,21 +154,34 @@
             carGroup.position.x += Math.sin(playerYaw) * speed;
             carGroup.position.z += Math.cos(playerYaw) * speed;
 
+            // LAP LOGIC
+            const distToOrigin = carGroup.position.length();
+            if (distToOrigin < 20 && !lapActive && !checkpointReached) {
+                startTime = Date.now(); lapActive = true; 
+            } else if (distToOrigin > 1500) {
+                checkpointReached = true; 
+            } else if (distToOrigin < 30 && checkpointReached) {
+                const finalTime = Date.now() - startTime;
+                if (finalTime < bestTime) { 
+                    bestTime = finalTime; 
+                    document.getElementById('bestTime').innerText = "BEST: " + formatTime(bestTime);
+                    document.getElementById('commentList').innerHTML += `<div style="color:#32cd32"><b>NEW RECORD!</b> ${formatTime(bestTime)}</div>`;
+                }
+                startTime = Date.now(); checkpointReached = false;
+            }
+
+            if (lapActive) {
+                document.getElementById('currTime').innerText = formatTime(Date.now() - startTime);
+            }
+
             camera.position.set(carGroup.position.x - Math.sin(playerYaw)*40, 20, carGroup.position.z - Math.cos(playerYaw)*40);
             camera.lookAt(carGroup.position);
             renderer.render(scene, camera);
         }
 
-        function addComment() { 
-            const i = document.getElementById('comInput'); 
-            if(i.value) { document.getElementById('commentList').innerHTML += `<div><b>Driver:</b> ${i.value}</div>`; i.value = ""; }
-        }
-
-        function playLink() { 
-            const u = document.getElementById('musicLink').value; 
-            let id = u.includes("v=") ? u.split("v=")[1].split("&")[0] : (u.includes("youtu.be/") ? u.split("youtu.be/")[1] : null); 
-            if(id) { document.getElementById('playerFrame').style.display = "block"; document.getElementById('playerFrame').src = `https://www.youtube.com/embed/${id}?autoplay=1`; }
-        }
+        function openJimmyTip() { window.open("https://www.sanangelogives.org/organization/emmanuelschooloffinearts", '_blank'); }
+        function addComment() { const i = document.getElementById('comInput'); if(i.value) { document.getElementById('commentList').innerHTML += `<div><b>Driver:</b> ${i.value}</div>`; i.value = ""; } }
+        function playLink() { const u = document.getElementById('musicLink').value; let id = u.includes("v=") ? u.split("v=")[1].split("&")[0] : (u.includes("youtu.be/") ? u.split("youtu.be/")[1] : null); if(id) { document.getElementById('playerFrame').style.display = "block"; document.getElementById('playerFrame').src = `https://www.youtube.com/embed/${id}?autoplay=1`; } }
     </script>
 </body>
 </html>
