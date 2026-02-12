@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Estate V78 - Neon Highway</title>
+    <title>Estate V79 - Winding Circuit</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: #fff; }
         #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; border: 1px solid #a020f0; pointer-events: none; }
@@ -17,25 +17,25 @@
 <body>
 
     <div id="overlay">
-        <h1 style="color:#a020f0; letter-spacing:10px;">NEON HIGHWAY V78</h1>
+        <h1 style="color:#a020f0; letter-spacing:10px;">WINDING CIRCUIT V79</h1>
         <button class="btn" style="font-size:20px; padding:15px 40px;" onclick="start()">IGNITION</button>
     </div>
 
     <div id="ui">
-        <b>WASD</b>: Drive | <b>Status</b>: <span style="color:#00ffff">TRI-METAL NEON</span>
+        <b>WASD</b>: Drive | <b>Status</b>: <span style="color:#00ffff">CIRCUIT READY</span>
     </div>
 
     <div id="cheatBox">
         <b>⌨️ SYSTEM CONSOLE</b><br>
-        <input type="text" id="cheatInput" placeholder="Enter System Key...">
+        <input type="text" id="cheatInput" placeholder="System Key...">
         <button class="btn" onclick="checkCheat()">RUN</button>
         <button id="stealthBtn" class="btn" style="display:none; margin-top:5px; width:100%; background:#4facfe;" onclick="toggleStealth()">GHOST MODE: OFF</button>
     </div>
 
     <div id="commentBox">
         <b>💬 LIVE FEED</b>
-        <div id="commentList">Roads initialized. Crystal trails active.</div>
-        <input type="text" id="comInput" placeholder="Type here...">
+        <div id="commentList">Track generated. Drift enabled.</div>
+        <input type="text" id="comInput" placeholder="Say something...">
         <button class="btn" onclick="addComment()">SEND</button>
     </div>
 
@@ -72,40 +72,51 @@
 
         function init() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 3000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // GRIDS (Purple Major / Green Minor)
-            scene.add(new THREE.GridHelper(2000, 200, 0x32cd32, 0x153315));
-            const purpleGrid = new THREE.GridHelper(2000, 40, 0xa020f0, 0xa020f0);
+            // GRIDS
+            scene.add(new THREE.GridHelper(4000, 200, 0x32cd32, 0x153315));
+            const purpleGrid = new THREE.GridHelper(4000, 40, 0xa020f0, 0xa020f0);
             purpleGrid.position.y = 0.05; scene.add(purpleGrid);
 
-            // THE ROAD
-            const roadGeo = new THREE.PlaneGeometry(30, 1000);
-            const roadMat = new THREE.MeshStandardMaterial({color: 0x050505, roughness: 0.1, metalness: 0.5});
+            // WINDING ROAD GENERATION
+            const curve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(100, 0, 200),
+                new THREE.Vector3(300, 0, 300),
+                new THREE.Vector3(500, 0, 100),
+                new THREE.Vector3(600, 0, -200),
+                new THREE.Vector3(400, 0, -500),
+                new THREE.Vector3(100, 0, -400),
+                new THREE.Vector3(0, 0, 0)
+            ]);
+            curve.closed = true;
+
+            const roadGeo = new THREE.TubeGeometry(curve, 100, 15, 8, false);
+            const roadMat = new THREE.MeshStandardMaterial({color: 0x080808, roughness: 0.2, metalness: 0.8, side: THREE.DoubleSide});
             const road = new THREE.Mesh(roadGeo, roadMat);
-            road.rotation.x = -Math.PI/2;
-            road.position.y = 0.1;
+            road.position.y = -14.5; // Flatten the tube top to use as a road
             scene.add(road);
-            
-            // Road Edges (Neon Glow)
-            const edgeGeo = new THREE.BoxGeometry(1, 0.2, 1000);
-            const edgeMat = new THREE.MeshBasicMaterial({color: 0x00ffff});
-            const e1 = new THREE.Mesh(edgeGeo, edgeMat); e1.position.set(15, 0.2, 0); scene.add(e1);
-            const e2 = new THREE.Mesh(edgeGeo, edgeMat); e2.position.set(-15, 0.2, 0); scene.add(e2);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.3));
-            const sun = new THREE.DirectionalLight(0xffffff, 1); sun.position.set(10,50,10); scene.add(sun);
+            // Road Edge Lines
+            const points = curve.getPoints(200);
+            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+            const lineMat = new THREE.LineBasicMaterial({color: 0x00ffff});
+            const lineLeft = new THREE.Line(lineGeo, lineMat); lineLeft.position.x += 15; scene.add(lineLeft);
+            const lineRight = new THREE.Line(lineGeo, lineMat); lineRight.position.x -= 15; scene.add(lineRight);
 
-            // SIGNS & AUDIENCE
-            const points = [[0, 5, 200], [0, 5, -200], [0, 5, 450]];
-            points.forEach(p => {
-                createSign("race2win!", [p[0]+25, 10, p[2]]);
-                for(let i=0; i<10; i++){
+            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+            const sun = new THREE.DirectionalLight(0xffffff, 1); sun.position.set(100, 200, 100); scene.add(sun);
+
+            // Signs at Turns
+            points.filter((p, i) => i % 40 === 0).forEach(p => {
+                createSign("race2win!", [p.x + 30, 10, p.z]);
+                for(let i=0; i<5; i++){
                     const fan = new THREE.Mesh(new THREE.BoxGeometry(2,4,2), new THREE.MeshBasicMaterial({color: Math.random()*0xffffff}));
-                    fan.position.set(p[0]+20+(Math.random()*10), 2, p[2]+(Math.random()-0.5)*30); scene.add(fan);
+                    fan.position.set(p.x + 25 + Math.random()*5, 2, p.z + Math.random()*5); scene.add(fan);
                 }
             });
 
@@ -117,33 +128,25 @@
 
         function createCar() {
             carGroup = new THREE.Group();
-            // GOLD, SILVER, DIAMOND + NEON TINT
-            const triMetalMat = new THREE.MeshPhysicalMaterial({
-                color: 0xffd700, // Gold Base
-                emissive: 0x00ffff, emissiveIntensity: 0.3, // Neon Tint
-                metalness: 1.0, // Silver reflectivity
-                roughness: 0.1, 
-                clearcoat: 1.0, // Diamond gloss
-                clearcoatRoughness: 0,
-                transparent: true
+            const triMat = new THREE.MeshPhysicalMaterial({
+                color: 0xffd700, emissive: 0x00ffff, emissiveIntensity: 0.3,
+                metalness: 1.0, roughness: 0.1, clearcoat: 1.0, transparent: true
             });
-            
-            chassis = new THREE.Mesh(new THREE.BoxGeometry(4, 0.8, 8), triMetalMat); chassis.position.y = 0.5; carGroup.add(chassis);
-            cabin = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1, 4), new THREE.MeshPhysicalMaterial({color:0x000000, metalness:1, roughness:0, transparent:true}));
+            chassis = new THREE.Mesh(new THREE.BoxGeometry(4, 0.8, 8), triMat); chassis.position.y = 0.5; carGroup.add(chassis);
+            cabin = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1, 4), new THREE.MeshStandardMaterial({color:0x000000, transparent:true}));
             cabin.position.set(0, 1.2, -0.5); carGroup.add(cabin);
-            spoiler = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 1.5), triMetalMat); spoiler.position.set(0, 1.5, 3.5); carGroup.add(spoiler);
+            spoiler = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 1.5), triMat); spoiler.position.set(0, 1.5, 3.5); carGroup.add(spoiler);
             
-            const wMat = new THREE.MeshBasicMaterial({color: 0x222222});
             for(let i=0; i<4; i++) {
-                const w = new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.8,0.5), wMat);
+                const w = new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.8,0.6), new THREE.MeshBasicMaterial({color: 0x222222}));
                 w.rotation.z = Math.PI/2; w.position.set(i<2?2.3:-2.3, 0.5, i%2==0?2.5:-2.5); carGroup.add(w);
             }
             scene.add(carGroup);
         }
 
         function spawnTrail() {
-            const geo = new THREE.OctahedronGeometry(0.6, 0);
-            const mat = new THREE.MeshBasicMaterial({color: 0xff00ff, transparent: true, opacity: 0.8});
+            const geo = new THREE.OctahedronGeometry(0.5, 0);
+            const mat = new THREE.MeshBasicMaterial({color: 0xff00ff, transparent: true, opacity: 0.9});
             const crystal = new THREE.Mesh(geo, mat);
             crystal.position.copy(carGroup.position);
             crystal.position.y = 0.5;
@@ -171,26 +174,26 @@
         function animate() {
             requestAnimationFrame(animate);
             const topKey = keyStack[keyStack.length - 1];
-            if (topKey === 'KeyW') speed = Math.min(speed + 0.06, 2.5);
-            else if (topKey === 'KeyS') speed = Math.max(speed - 0.06, -1.0);
+            if (topKey === 'KeyW') speed = Math.min(speed + 0.07, 3.0);
+            else if (topKey === 'KeyS') speed = Math.max(speed - 0.07, -1.0);
             else speed *= 0.96;
 
-            if (topKey === 'KeyA') playerYaw += 0.045;
-            if (topKey === 'KeyD') playerYaw -= 0.045;
+            if (topKey === 'KeyA') playerYaw += 0.05;
+            if (topKey === 'KeyD') playerYaw -= 0.05;
 
             carGroup.rotation.y = playerYaw;
             carGroup.position.x += Math.sin(playerYaw) * speed;
             carGroup.position.z += Math.cos(playerYaw) * speed;
 
             frameCount++;
-            if(Math.abs(speed) > 0.1 && frameCount % 3 === 0) spawnTrail();
+            if(Math.abs(speed) > 0.1 && frameCount % 2 === 0) spawnTrail();
             for(let i = trailSegments.length - 1; i >= 0; i--) {
                 let s = trailSegments[i];
-                s.life -= 0.02; s.mesh.material.opacity = s.life; s.mesh.rotation.y += 0.1;
+                s.life -= 0.02; s.mesh.material.opacity = s.life; s.mesh.rotation.y += 0.2;
                 if(s.life <= 0) { scene.remove(s.mesh); trailSegments.splice(i, 1); }
             }
 
-            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*20, 10, carGroup.position.z - Math.cos(playerYaw)*20);
+            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*22, 12, carGroup.position.z - Math.cos(playerYaw)*22);
             camera.lookAt(carGroup.position);
             renderer.render(scene, camera);
         }
