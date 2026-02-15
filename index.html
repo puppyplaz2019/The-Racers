@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Estate V95 - APEX CHROME</title>
+    <title>The Racers - ESOFA Benefit</title>
     <style>
         body { margin: 0; overflow: hidden; background: #050508; font-family: 'Courier New', monospace; color: #fff; }
         
@@ -21,8 +21,9 @@
 <body>
 
     <div id="overlay">
-        <h1 style="color:#ffffff; letter-spacing:10px; text-shadow: 0 0 20px #00ffff;">APEX: FUTURE</h1>
-        <button class="btn" style="font-size:18px; padding:12px 30px; background:#fff;" onclick="start()">IGNITION</button>
+        <h1 style="color:#ffffff; letter-spacing:12px; text-shadow: 0 0 20px #00ffff;">THE RACERS</h1>
+        <p style="color:#00ffff; margin-top:-15px; letter-spacing:3px;">ESOFA CIRCUIT</p>
+        <button class="btn" style="font-size:18px; padding:12px 40px; background:#fff; margin-top:20px;" onclick="start()">IGNITION</button>
     </div>
 
     <div id="timerBox">
@@ -42,7 +43,7 @@
 
     <div id="commentBox">
         <b>💬 CHAT</b>
-        <div id="commentList">Apex Chrome Spec Loaded.</div>
+        <div id="commentList">Welcome to The Racers.</div>
         <div style="display:flex; gap:3px;">
             <input type="text" id="comInput" style="flex-grow:1;" placeholder="Talk...">
             <button class="btn" onclick="startVoice()">🎤</button>
@@ -85,35 +86,34 @@
 
             const points = curve.getPoints(300);
             const roadGeo = new THREE.BufferGeometry();
-            const verts = [], indices = [], edgeL = [], edgeR = [];
+            const verts = [], indices = [];
 
             for (let i = 0; i <= points.length; i++) {
                 const curr = points[i % points.length], next = points[(i + 1) % points.length];
                 const dir = new THREE.Vector3().subVectors(next, curr).normalize();
                 const side = new THREE.Vector3(0, 1, 0).cross(dir).multiplyScalar(75);
                 verts.push(curr.x + side.x, 0.05, curr.z + side.z, curr.x - side.x, 0.05, curr.z - side.z);
-                edgeL.push(curr.x + side.x, 0.1, curr.z + side.z); edgeR.push(curr.x - side.x, 0.1, curr.z - side.z);
                 if (i < points.length) { const b = i * 2; indices.push(b, b+1, b+2, b+1, b+3, b+2); }
             }
             roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
             roadGeo.setIndex(indices); roadGeo.computeVertexNormals();
             scene.add(new THREE.Mesh(roadGeo, new THREE.MeshPhysicalMaterial({ color: 0x111111, roughness: 0.7 })));
 
-            // Crowd
+            // Audience Blocks
             const colors = [0x00ffff, 0xff00ff, 0x32cd32];
             for (let i = 0; i < points.length; i += 3) {
                 const p = points[i], next = points[(i+1)%points.length], side = new THREE.Vector3(0,1,0).cross(new THREE.Vector3().subVectors(next,p).normalize());
                 [1, -1].forEach(s => {
                     if(Math.random() > 0.4) {
-                        const m = new THREE.Mesh(new THREE.BoxGeometry(3, Math.random()*10+5, 3), new THREE.MeshBasicMaterial({color: colors[Math.floor(Math.random()*3)]}));
-                        const d = 90 + Math.random()*30; m.position.set(p.x + side.x*d*s, 5, p.z + side.z*d*s); scene.add(m);
+                        const m = new THREE.Mesh(new THREE.BoxGeometry(4, Math.random()*12+6, 4), new THREE.MeshBasicMaterial({color: colors[Math.floor(Math.random()*3)]}));
+                        const d = 95 + Math.random()*35; m.position.set(p.x + side.x*d*s, 5, p.z + side.z*d*s); scene.add(m);
                     }
                 });
             }
 
             scene.add(new THREE.AmbientLight(0xffffff, 0.5));
             const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(100, 500, 100); scene.add(sun);
-            const fl = new THREE.Mesh(new THREE.PlaneGeometry(150, 15), new THREE.MeshBasicMaterial({color: 0xffffff, transparent:true, opacity:0.5}));
+            const fl = new THREE.Mesh(new THREE.PlaneGeometry(160, 18), new THREE.MeshBasicMaterial({color: 0xffffff, transparent:true, opacity:0.6}));
             fl.rotation.x = -Math.PI/2; fl.position.y = 0.1; scene.add(fl);
 
             createCar();
@@ -128,48 +128,41 @@
             const cyanNeon = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 5 });
             const limeNeon = new THREE.MeshStandardMaterial({ color: 0x32cd32, emissive: 0x32cd32, emissiveIntensity: 5 });
 
-            // Apex Body Shape
-            const mainBody = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.8, 10), chromeMat);
+            const mainBody = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.8, 10.5), chromeMat);
             mainBody.position.y = 0.6; carGroup.add(mainBody);
 
-            const cockpit = new THREE.Mesh(new THREE.SphereGeometry(1.8, 16, 16), new THREE.MeshPhysicalMaterial({color: 0x000, metalness: 1, roughness: 0}));
-            cockpit.scale.set(1, 0.6, 2.5); cockpit.position.set(0, 1.1, 0.5); carGroup.add(cockpit);
+            const cockpit = new THREE.Mesh(new THREE.SphereGeometry(1.8, 16, 16), new THREE.MeshPhysicalMaterial({color: 0x000, metalness: 1}));
+            cockpit.scale.set(1, 0.6, 2.8); cockpit.position.set(0, 1.1, 0.6); carGroup.add(cockpit);
 
-            // Front Splitter (Lime)
-            const splitter = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.1, 2), limeNeon);
-            splitter.position.set(0, 0.2, 5); carGroup.add(splitter);
+            const splitter = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.1, 2.2), limeNeon); splitter.position.set(0, 0.2, 5.2); carGroup.add(splitter);
+            const podL = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 6.5), cyanNeon); podL.position.set(2.7, 0.5, 0); carGroup.add(podL);
+            const podR = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 6.5), cyanNeon); podR.position.set(-2.7, 0.5, 0); carGroup.add(podR);
 
-            // Side Pods (Cyan)
-            const podL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 6), cyanNeon); podL.position.set(2.6, 0.5, 0); carGroup.add(podL);
-            const podR = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 6), cyanNeon); podR.position.set(-2.6, 0.5, 0); carGroup.add(podR);
+            const wingStrutL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.8, 0.6), chromeMat); wingStrutL.position.set(2.2, 1.5, -4.8); carGroup.add(wingStrutL);
+            const wingStrutR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.8, 0.6), chromeMat); wingStrutR.position.set(-2.2, 1.5, -4.8); carGroup.add(wingStrutR);
+            const wingTop = new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.1, 2.5), limeNeon); wingTop.position.set(0, 2.4, -4.8); carGroup.add(wingTop);
 
-            // Rear Wing
-            const wingStrutL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.5, 0.5), chromeMat); wingStrutL.position.set(2, 1.5, -4.5); carGroup.add(wingStrutL);
-            const wingStrutR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.5, 0.5), chromeMat); wingStrutR.position.set(-2, 1.5, -4.5); carGroup.add(wingStrutR);
-            const wingTop = new THREE.Mesh(new THREE.BoxGeometry(6, 0.1, 2), limeNeon); wingTop.position.set(0, 2.2, -4.5); carGroup.add(wingTop);
-
-            // Apex Wheels
-            const wGeo = new THREE.CylinderGeometry(1, 1, 0.8, 32);
-            const wPos = [[2.8, 3.5], [-2.8, 3.5], [2.8, -3.5], [-2.8, -3.5]];
+            const wGeo = new THREE.CylinderGeometry(1.1, 1.1, 0.9, 32);
+            const wPos = [[2.9, 3.8], [-2.9, 3.8], [2.9, -3.8], [-2.9, -3.8]];
             wPos.forEach((p, i) => {
                 const w = new THREE.Mesh(wGeo, new THREE.MeshStandardMaterial({color: 0x050505}));
-                w.rotation.z = Math.PI/2; w.position.set(p[0], 1, p[1]);
-                const rim = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.08, 8, 24), i % 2 === 0 ? cyanNeon : limeNeon);
-                rim.rotation.y = Math.PI/2; rim.position.x = p[0] > 0 ? 0.42 : -0.42;
+                w.rotation.z = Math.PI/2; w.position.set(p[0], 1.1, p[1]);
+                const rim = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.08, 8, 24), i % 2 === 0 ? cyanNeon : limeNeon);
+                rim.rotation.y = Math.PI/2; rim.position.x = p[0] > 0 ? 0.48 : -0.48;
                 w.add(rim); carGroup.add(w);
             });
 
-            carGroup.position.set(0, 0, -60); scene.add(carGroup);
+            carGroup.position.set(0, 0, -65); scene.add(carGroup);
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            if (keys['KeyW']) speed = Math.min(speed + 0.18, 5.5);
-            else if (keys['KeyS']) speed = Math.max(speed - 0.18, -2.5);
+            if (keys['KeyW']) speed = Math.min(speed + 0.19, 5.8);
+            else if (keys['KeyS']) speed = Math.max(speed - 0.19, -2.8);
             else speed *= 0.96;
 
-            if (keys['KeyA']) playerYaw += 0.05;
-            if (keys['KeyD']) playerYaw -= 0.05;
+            if (keys['KeyA']) playerYaw += 0.052;
+            if (keys['KeyD']) playerYaw -= 0.052;
 
             carGroup.rotation.y = playerYaw;
             carGroup.position.x += Math.sin(playerYaw) * speed;
@@ -177,20 +170,20 @@
 
             if (carGroup.position.z >= 0 && !racePrompted) {
                 speed = 0; keys = {}; racePrompted = true;
-                if (confirm("START RACE?")) { startTime = Date.now(); lapActive = true; }
+                if (confirm("READY FOR THE RACERS?")) { startTime = Date.now(); lapActive = true; }
             }
 
             if (lapActive) {
                 let ms = Date.now() - startTime;
                 document.getElementById('currTime').innerText = formatTime(ms);
                 if (carGroup.position.length() > 800) checkpointReached = true;
-                if (carGroup.position.length() < 70 && checkpointReached) {
+                if (carGroup.position.length() < 80 && checkpointReached) {
                     if (ms < bestTime) { bestTime = ms; document.getElementById('bestTime').innerText = "BEST: " + formatTime(ms); }
                     startTime = Date.now(); checkpointReached = false;
                 }
             }
 
-            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*45, 25, carGroup.position.z - Math.cos(playerYaw)*45);
+            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*48, 28, carGroup.position.z - Math.cos(playerYaw)*48);
             camera.lookAt(carGroup.position);
             renderer.render(scene, camera);
         }
@@ -200,7 +193,7 @@
             return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}.${c.toString().padStart(2,'0')}`;
         }
         function openJimmyTip() { window.open("https://www.sanangelogives.org/organization/emmanuelschooloffinearts", '_blank'); }
-        function addComment() { const i = document.getElementById('comInput'); if(i.value) { document.getElementById('commentList').innerHTML += `<div><b>ApexRacer:</b> ${i.value}</div>`; i.value = ""; } }
+        function addComment() { const i = document.getElementById('comInput'); if(i.value) { document.getElementById('commentList').innerHTML += `<div><b>Racer:</b> ${i.value}</div>`; i.value = ""; } }
         function startVoice() { const sr = window.SpeechRecognition || window.webkitSpeechRecognition; if(sr) { const r = new sr(); r.onresult = (e) => document.getElementById('comInput').value = e.results[0][0].transcript; r.start(); } }
         function playLink() { const u = document.getElementById('musicLink').value; let id = u.includes("v=") ? u.split("v=")[1].split("&")[0] : u.split("youtu.be/")[1]; if(id) { document.getElementById('playerFrame').style.display = "block"; document.getElementById('playerFrame').src = `https://www.youtube.com/embed/${id}?autoplay=1`; } }
     </script>
