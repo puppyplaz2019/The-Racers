@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Racers - Restoration V104</title>
+    <title>The Racers - Restoration V105</title>
     <style>
         body { margin: 0; overflow: hidden; background: #050508; font-family: 'Courier New', monospace; color: #fff; }
-        #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 12px; border-radius: 8px; border: 1px solid #00ffff; pointer-events: none; }
-        #timerBox { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); padding: 10px; border: 2px solid #00ffff; border-radius: 10px; text-align: center; min-width: 160px; box-shadow: 0 0 10px #00ffff; }
-        #nitroBox { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 8px 20px; border-radius: 20px; border: 1px solid #ff0000; font-weight: bold; }
+        #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 12px; border-radius: 8px; border: 1px solid #00ffff; pointer-events: none; z-index: 10; }
+        #timerBox { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); padding: 10px; border: 2px solid #00ffff; border-radius: 10px; text-align: center; min-width: 160px; box-shadow: 0 0 10px #00ffff; z-index: 10; }
+        #nitroBox { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 8px 20px; border-radius: 20px; border: 1px solid #ff0000; font-weight: bold; z-index: 10; }
         #tipJar { position: absolute; bottom: 195px; right: 20px; background: linear-gradient(45deg, #111, #00ffff); padding: 12px; border-radius: 10px; border: 2px solid #fff; color: #fff; font-weight: bold; text-align: center; cursor: pointer; box-shadow: 0 0 15px #00ffff; z-index: 25; }
-        #commentBox { position: absolute; bottom: 20px; left: 20px; background: rgba(10,10,10,0.9); padding: 15px; border: 1px solid #555; width: 280px; border-radius: 5px; }
+        #commentBox { position: absolute; bottom: 20px; left: 20px; background: rgba(10,10,10,0.9); padding: 15px; border: 1px solid #555; width: 280px; border-radius: 5px; z-index: 20; }
         #commentList { height: 80px; overflow-y: auto; font-size: 11px; margin-bottom: 5px; border-bottom: 1px solid #333; }
-        #djDeck { position: absolute; bottom: 20px; right: 20px; background: #111; padding: 15px; border: 2px solid #a020f0; width: 260px; }
+        #djDeck { position: absolute; bottom: 20px; right: 20px; background: #111; padding: 15px; border: 2px solid #a020f0; width: 260px; z-index: 20; }
         .btn { cursor: pointer; background: #32cd32; color: #000; border: none; padding: 5px 10px; font-weight: bold; }
         #overlay { position: absolute; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
     </style>
@@ -19,7 +19,7 @@
 
     <div id="overlay">
         <h1 style="color:#ffffff; letter-spacing:12px; text-shadow: 0 0 20px #00ffff;">THE RACERS</h1>
-        <p style="color:#00ffff;">V104: FULL FEATS RESTORED</p>
+        <p style="color:#00ffff;">V105: CLEAR VIEW & SEALED WALLS</p>
         <button class="btn" style="font-size:18px; padding:12px 40px; background:#fff; margin-top:20px;" onclick="start()">IGNITION</button>
     </div>
 
@@ -39,7 +39,7 @@
 
     <div id="commentBox">
         <b>💬 CHAT</b>
-        <div id="commentList">System Online. Race for the Arts!</div>
+        <div id="commentList">View Obstructed? Fixed in V105.</div>
         <div style="display:flex; gap:3px;">
             <input type="text" id="comInput" style="background:#000; color:#fff; border:1px solid #333; flex-grow:1;" placeholder="Talk...">
             <button class="btn" onclick="addComment()">></button>
@@ -73,7 +73,6 @@
 
             scene.add(new THREE.GridHelper(10000, 100, 0x00ffff, 0x050505));
 
-            // Track Geometry (Loop)
             const trackCurve = new THREE.EllipseCurve(0, 0, 1500, 1500, 0, 2 * Math.PI);
             const points = trackCurve.getPoints(200);
             
@@ -84,17 +83,23 @@
             for (let i = 0; i < points.length; i++) {
                 let p1 = points[i], p2 = points[(i+1)%points.length];
                 let dir = new THREE.Vector3(p2.x - p1.x, 0, p2.y - p1.y).normalize();
-                let side = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(65);
+                let sideL = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(65);
+                let sideR = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(-65);
 
-                let seg = new THREE.Mesh(new THREE.PlaneGeometry(130, p1.distanceTo(p2)+1), roadMat);
+                let seg = new THREE.Mesh(new THREE.PlaneGeometry(130, p1.distanceTo(p2)+2), roadMat);
                 seg.position.set((p1.x+p2.x)/2, 0.1, (p1.y+p2.y)/2);
                 seg.lookAt(p2.x, 0.1, p2.y); seg.rotation.x = Math.PI/2;
                 scene.add(seg);
 
-                let wL = new THREE.Mesh(new THREE.BoxGeometry(2, 15, p1.distanceTo(p2)+1), wallMat);
-                wL.position.set(p1.x + side.x, 7.5, p1.y + side.z);
-                wL.lookAt(p2.x + side.x, 7.5, p2.y + side.z);
+                let wL = new THREE.Mesh(new THREE.BoxGeometry(2, 15, p1.distanceTo(p2)+2), wallMat);
+                wL.position.set((p1.x+p2.x)/2 + sideL.x, 7.5, (p1.y+p2.y)/2 + sideL.z);
+                wL.lookAt(p2.x + sideL.x, 7.5, p2.y + sideL.z);
                 wallGroup.add(wL);
+
+                let wR = new THREE.Mesh(new THREE.BoxGeometry(2, 15, p1.distanceTo(p2)+2), wallMat);
+                wR.position.set((p1.x+p2.x)/2 + sideR.x, 7.5, (p1.y+p2.y)/2 + sideR.z);
+                wR.lookAt(p2.x + sideR.x, 7.5, p2.y + sideR.z);
+                wallGroup.add(wR);
             }
             scene.add(wallGroup);
 
@@ -139,7 +144,6 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            // 30s Balance
             let accel = 0.12 * nitroMult;
             if (keys['KeyW']) speed = Math.min(speed + accel, 5.2 * nitroMult);
             else if (keys['KeyS']) speed = Math.max(speed - 0.2, -2);
@@ -152,7 +156,7 @@
             let nextZ = carGroup.position.z + Math.cos(playerYaw) * speed;
             
             let dist = Math.sqrt(nextX**2 + nextZ**2);
-            if (Math.abs(dist - 1500) > 58) { speed *= -0.4; } 
+            if (Math.abs(dist - 1500) > 60) { speed *= -0.4; } 
             else { carGroup.position.set(nextX, 0, nextZ); }
 
             carGroup.rotation.y = playerYaw;
@@ -169,7 +173,8 @@
                     checkpointReached = false; startTime = Date.now();
                 }
             }
-            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*45, 22, carGroup.position.z - Math.cos(playerYaw)*45);
+            // Better camera offset to prevent visual blocking
+            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*55, 30, carGroup.position.z - Math.cos(playerYaw)*55);
             camera.lookAt(carGroup.position);
             renderer.render(scene, camera);
         }
