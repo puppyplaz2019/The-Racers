@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Racers - V101 STABLE</title>
+    <title>The Racers - V102</title>
     <style>
         body { margin: 0; overflow: hidden; background: #050508; font-family: 'Courier New', monospace; color: #fff; }
         #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 12px; border-radius: 8px; border: 1px solid #00ffff; }
@@ -16,7 +16,7 @@
 
     <div id="overlay">
         <h1 style="color:#ffffff; letter-spacing:12px; text-shadow: 0 0 20px #00ffff;">THE RACERS</h1>
-        <p style="color:#00ffff;">V101: CORE MOVEMENT FIXED</p>
+        <p style="color:#00ffff;">V102: LIGHTING & FINISH LINE FIXED</p>
         <button class="btn" onclick="start()">START ENGINE</button>
     </div>
 
@@ -41,7 +41,7 @@
         let scene, camera, renderer, carGroup, wallGroup;
         let keys = {}, playerYaw = 0, speed = 0;
         let startTime = 0, bestTime = Infinity, lapActive = false, checkpointReached = false;
-        let nitroCooldown = false, nitroMult = 1, cyanNeon, limeNeon;
+        let nitroCooldown = false, nitroMult = 1;
 
         function start() { document.getElementById('overlay').style.display = 'none'; init(); }
 
@@ -54,27 +54,39 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            scene.add(new THREE.GridHelper(5000, 100, 0x00ffff, 0x050505));
+            scene.add(new THREE.GridHelper(10000, 100, 0x00ffff, 0x050505));
 
-            // Track Design
-            const roadGeo = new THREE.PlaneGeometry(150, 5000);
-            const roadMat = new THREE.MeshPhysicalMaterial({ color: 0x111111, roughness: 0.8 });
+            // Road
+            const roadGeo = new THREE.PlaneGeometry(150, 10000);
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
             const road = new THREE.Mesh(roadGeo, roadMat);
             road.rotation.x = -Math.PI / 2;
             scene.add(road);
 
-            // Safety Walls (Now using simple Box Geometry for better collision)
+            // Finish Line Arch
+            const archGeo = new THREE.BoxGeometry(160, 40, 10);
+            const archMat = new THREE.MeshBasicMaterial({ color: 0x32cd32, wireframe: true });
+            const arch = new THREE.Mesh(archGeo, archMat);
+            arch.position.set(0, 20, 4900);
+            scene.add(arch);
+
+            // Walls
             wallGroup = new THREE.Group();
             const wallMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.2 });
-            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(5, 20, 5000), wallMat);
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(2, 20, 10000), wallMat);
             leftWall.position.set(75, 10, 0);
-            const rightWall = new THREE.Mesh(new THREE.BoxGeometry(5, 20, 5000), wallMat);
+            const rightWall = new THREE.Mesh(new THREE.BoxGeometry(2, 20, 10000), wallMat);
             rightWall.position.set(-75, 10, 0);
             wallGroup.add(leftWall, rightWall);
-            wallGroup.visible = false;
             scene.add(wallGroup);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            // Lights (The Fix)
+            const ambient = new THREE.AmbientLight(0xffffff, 1.0);
+            scene.add(ambient);
+            const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+            sun.position.set(0, 50, 0);
+            scene.add(sun);
+
             createCar();
 
             window.addEventListener('keydown', e => {
@@ -89,89 +101,76 @@
 
         function createCar() {
             carGroup = new THREE.Group();
-            const chrome = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.1 });
-            cyanNeon = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff });
-            limeNeon = new THREE.MeshStandardMaterial({ color: 0x32cd32, emissive: 0x32cd32 });
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.9, roughness: 0.1 });
+            const neonMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
 
-            const body = new THREE.Mesh(new THREE.BoxGeometry(5, 1.5, 10), chrome);
-            body.position.y = 1;
+            const body = new THREE.Mesh(new THREE.BoxGeometry(6, 2, 12), bodyMat);
+            body.position.y = 1.5;
             carGroup.add(body);
 
-            const wing = new THREE.Mesh(new THREE.BoxGeometry(7, 0.5, 2), limeNeon);
-            wing.position.set(0, 3, -4);
-            carGroup.add(wing);
+            const cabin = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 6), bodyMat);
+            cabin.position.set(0, 3, 0);
+            carGroup.add(cabin);
 
             carGroup.position.set(0, 0, -50);
             scene.add(carGroup);
         }
 
         function resetCar() {
-            speed = 0;
-            playerYaw = 0;
+            speed = 0; playerYaw = 0;
             carGroup.position.set(0, 0, -50);
         }
 
         function activateNitro() {
             nitroCooldown = true; nitroMult = 5;
             document.getElementById('nitroBox').innerText = "NITRO: ACTIVE!!";
-            document.getElementById('nitroBox').style.color = "#00ffff";
             setTimeout(() => {
                 nitroMult = 1;
                 document.getElementById('nitroBox').innerText = "NITRO: COOLING...";
-                document.getElementById('nitroBox').style.color = "#ffff00";
             }, 1000);
             setTimeout(() => {
                 nitroCooldown = false;
                 document.getElementById('nitroBox').innerText = "NITRO: READY (SHIFT)";
-                document.getElementById('nitroBox').style.color = "#ff0000";
             }, 6000);
         }
 
         function animate() {
             requestAnimationFrame(animate);
 
-            // Basic Movement
-            if (keys['KeyW']) speed = Math.min(speed + (0.2 * nitroMult), 5 * nitroMult);
+            if (keys['KeyW']) speed = Math.min(speed + (0.15 * nitroMult), 5 * nitroMult);
             else if (keys['KeyS']) speed = Math.max(speed - 0.2, -2);
             else speed *= 0.97;
 
             if (keys['KeyA']) playerYaw += 0.04;
             if (keys['KeyD']) playerYaw -= 0.04;
 
-            // Collision with Walls
             let nextX = carGroup.position.x + Math.sin(playerYaw) * speed;
-            if (Math.abs(nextX) > 70) {
-                speed *= -0.5;
-                nextX = carGroup.position.x;
-            }
+            if (Math.abs(nextX) > 70) speed *= -0.5;
+            else carGroup.position.x = nextX;
 
             carGroup.rotation.y = playerYaw;
-            carGroup.position.x = nextX;
             carGroup.position.z += Math.cos(playerYaw) * speed;
 
-            // Start Race Trigger
             if (carGroup.position.z > 0 && !lapActive) {
                 lapActive = true;
                 startTime = Date.now();
-                wallGroup.visible = true;
             }
 
-            // Lap Logic
             if (lapActive) {
                 let ms = Date.now() - startTime;
                 document.getElementById('currTime').innerText = formatTime(ms);
-                if (carGroup.position.z > 2000) checkpointReached = true;
-                if (carGroup.position.z < 10 && checkpointReached) {
+                if (carGroup.position.z > 4900) {
                     if (ms < bestTime) {
                         bestTime = ms;
                         document.getElementById('bestTime').innerText = "BEST: " + formatTime(ms);
                     }
-                    checkpointReached = false;
-                    startTime = Date.now();
+                    lapActive = false;
+                    alert("Race Complete! Time: " + formatTime(ms));
+                    resetCar();
                 }
             }
 
-            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*40, 20, carGroup.position.z - Math.cos(playerYaw)*40);
+            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*50, 25, carGroup.position.z - Math.cos(playerYaw)*50);
             camera.lookAt(carGroup.position);
             renderer.render(scene, camera);
         }
