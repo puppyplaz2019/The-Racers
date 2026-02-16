@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Racers - Restoration V105</title>
+    <title>The Racers - V106 Grid Run</title>
     <style>
         body { margin: 0; overflow: hidden; background: #050508; font-family: 'Courier New', monospace; color: #fff; }
         #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 12px; border-radius: 8px; border: 1px solid #00ffff; pointer-events: none; z-index: 10; }
@@ -19,7 +19,7 @@
 
     <div id="overlay">
         <h1 style="color:#ffffff; letter-spacing:12px; text-shadow: 0 0 20px #00ffff;">THE RACERS</h1>
-        <p style="color:#00ffff;">V105: CLEAR VIEW & SEALED WALLS</p>
+        <p style="color:#00ffff;">V106: ROADLESS GRID CIRCUIT</p>
         <button class="btn" style="font-size:18px; padding:12px 40px; background:#fff; margin-top:20px;" onclick="start()">IGNITION</button>
     </div>
 
@@ -32,14 +32,14 @@
 
     <div id="ui">
         <b>WASD</b>: Drive | <b>SHIFT</b>: Nitro<br>
-        <b>R</b>: Reset | <small style="color: #00ffff;">Benefit for ESOFA</small>
+        <b>R</b>: Reset | <small style="color: #00ffff;">ESOFA Benefit</small>
     </div>
 
     <div id="tipJar" onclick="window.open('https://www.sanangelogives.org/organization/emmanuelschooloffinearts')">🥁 TIP ESOFA</div>
 
     <div id="commentBox">
         <b>💬 CHAT</b>
-        <div id="commentList">View Obstructed? Fixed in V105.</div>
+        <div id="commentList">Road removed. Stability improved.</div>
         <div style="display:flex; gap:3px;">
             <input type="text" id="comInput" style="background:#000; color:#fff; border:1px solid #333; flex-grow:1;" placeholder="Talk...">
             <button class="btn" onclick="addComment()">></button>
@@ -71,14 +71,14 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
+            // The Grid is now the main racing surface
             scene.add(new THREE.GridHelper(10000, 100, 0x00ffff, 0x050505));
 
             const trackCurve = new THREE.EllipseCurve(0, 0, 1500, 1500, 0, 2 * Math.PI);
             const points = trackCurve.getPoints(200);
             
             wallGroup = new THREE.Group();
-            const roadMat = new THREE.MeshStandardMaterial({ color: 0x111111, side: THREE.DoubleSide });
-            const wallMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
+            const wallMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
 
             for (let i = 0; i < points.length; i++) {
                 let p1 = points[i], p2 = points[(i+1)%points.length];
@@ -86,24 +86,19 @@
                 let sideL = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(65);
                 let sideR = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(-65);
 
-                let seg = new THREE.Mesh(new THREE.PlaneGeometry(130, p1.distanceTo(p2)+2), roadMat);
-                seg.position.set((p1.x+p2.x)/2, 0.1, (p1.y+p2.y)/2);
-                seg.lookAt(p2.x, 0.1, p2.y); seg.rotation.x = Math.PI/2;
-                scene.add(seg);
-
-                let wL = new THREE.Mesh(new THREE.BoxGeometry(2, 15, p1.distanceTo(p2)+2), wallMat);
-                wL.position.set((p1.x+p2.x)/2 + sideL.x, 7.5, (p1.y+p2.y)/2 + sideL.z);
-                wL.lookAt(p2.x + sideL.x, 7.5, p2.y + sideL.z);
+                let wL = new THREE.Mesh(new THREE.BoxGeometry(2, 20, p1.distanceTo(p2)+2), wallMat);
+                wL.position.set((p1.x+p2.x)/2 + sideL.x, 10, (p1.y+p2.y)/2 + sideL.z);
+                wL.lookAt(p2.x + sideL.x, 10, p2.y + sideL.z);
                 wallGroup.add(wL);
 
-                let wR = new THREE.Mesh(new THREE.BoxGeometry(2, 15, p1.distanceTo(p2)+2), wallMat);
-                wR.position.set((p1.x+p2.x)/2 + sideR.x, 7.5, (p1.y+p2.y)/2 + sideR.z);
-                wR.lookAt(p2.x + sideR.x, 7.5, p2.y + sideR.z);
+                let wR = new THREE.Mesh(new THREE.BoxGeometry(2, 20, p1.distanceTo(p2)+2), wallMat);
+                wR.position.set((p1.x+p2.x)/2 + sideR.x, 10, (p1.y+p2.y)/2 + sideR.z);
+                wR.lookAt(p2.x + sideR.x, 10, p2.y + sideR.z);
                 wallGroup.add(wR);
             }
             scene.add(wallGroup);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+            scene.add(new THREE.AmbientLight(0xffffff, 1.8));
             createCar();
 
             window.addEventListener('keydown', e => {
@@ -173,7 +168,6 @@
                     checkpointReached = false; startTime = Date.now();
                 }
             }
-            // Better camera offset to prevent visual blocking
             camera.position.set(carGroup.position.x - Math.sin(playerYaw)*55, 30, carGroup.position.z - Math.cos(playerYaw)*55);
             camera.lookAt(carGroup.position);
             renderer.render(scene, camera);
