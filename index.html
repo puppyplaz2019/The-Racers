@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Racers - V106 Grid Run</title>
+    <title>The Racers - V107 Oval Speedway</title>
     <style>
         body { margin: 0; overflow: hidden; background: #050508; font-family: 'Courier New', monospace; color: #fff; }
         #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 12px; border-radius: 8px; border: 1px solid #00ffff; pointer-events: none; z-index: 10; }
@@ -19,7 +19,7 @@
 
     <div id="overlay">
         <h1 style="color:#ffffff; letter-spacing:12px; text-shadow: 0 0 20px #00ffff;">THE RACERS</h1>
-        <p style="color:#00ffff;">V106: ROADLESS GRID CIRCUIT</p>
+        <p style="color:#00ffff;">V107: OVAL SPEEDWAY EDITION</p>
         <button class="btn" style="font-size:18px; padding:12px 40px; background:#fff; margin-top:20px;" onclick="start()">IGNITION</button>
     </div>
 
@@ -32,14 +32,14 @@
 
     <div id="ui">
         <b>WASD</b>: Drive | <b>SHIFT</b>: Nitro<br>
-        <b>R</b>: Reset | <small style="color: #00ffff;">ESOFA Benefit</small>
+        <b>R</b>: Reset | <small style="color: #00ffff;">Straightaways = Top Speed</small>
     </div>
 
     <div id="tipJar" onclick="window.open('https://www.sanangelogives.org/organization/emmanuelschooloffinearts')">🥁 TIP ESOFA</div>
 
     <div id="commentBox">
         <b>💬 CHAT</b>
-        <div id="commentList">Road removed. Stability improved.</div>
+        <div id="commentList">Oval track initialized. Go fast!</div>
         <div style="display:flex; gap:3px;">
             <input type="text" id="comInput" style="background:#000; color:#fff; border:1px solid #333; flex-grow:1;" placeholder="Talk...">
             <button class="btn" onclick="addComment()">></button>
@@ -56,7 +56,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <script>
-        let scene, camera, renderer, carGroup, wallGroup;
+        let scene, camera, renderer, carGroup, wallGroup, trackPoints = [];
         let keys = {}, playerYaw = 0, speed = 0;
         let startTime = 0, bestTime = Infinity, lapActive = false, checkpointReached = false;
         let nitroCooldown = false, nitroMult = 1, cyanNeon, limeNeon;
@@ -66,34 +66,50 @@
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x020205);
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 10000);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 15000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // The Grid is now the main racing surface
             scene.add(new THREE.GridHelper(10000, 100, 0x00ffff, 0x050505));
 
-            const trackCurve = new THREE.EllipseCurve(0, 0, 1500, 1500, 0, 2 * Math.PI);
-            const points = trackCurve.getPoints(200);
+            // Create Oval Track Points
+            const straightLen = 800;
+            const radius = 1000;
             
+            // Right Straight
+            for(let i=0; i<10; i++) trackPoints.push(new THREE.Vector3(radius, 0, (i/10)*straightLen - straightLen/2));
+            // Top Turn
+            for(let i=0; i<=20; i++) {
+                let a = (i/20) * Math.PI;
+                trackPoints.push(new THREE.Vector3(Math.cos(a)*radius, 0, straightLen/2 + Math.sin(a)*radius));
+            }
+            // Left Straight
+            for(let i=0; i<10; i++) trackPoints.push(new THREE.Vector3(-radius, 0, straightLen/2 - (i/10)*straightLen));
+            // Bottom Turn
+            for(let i=0; i<=20; i++) {
+                let a = Math.PI + (i/20) * Math.PI;
+                trackPoints.push(new THREE.Vector3(Math.cos(a)*radius, 0, -straightLen/2 + Math.sin(a)*radius));
+            }
+
             wallGroup = new THREE.Group();
             const wallMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
 
-            for (let i = 0; i < points.length; i++) {
-                let p1 = points[i], p2 = points[(i+1)%points.length];
-                let dir = new THREE.Vector3(p2.x - p1.x, 0, p2.y - p1.y).normalize();
+            for (let i = 0; i < trackPoints.length; i++) {
+                let p1 = trackPoints[i];
+                let p2 = trackPoints[(i+1)%trackPoints.length];
+                let dir = new THREE.Vector3().subVectors(p2, p1).normalize();
                 let sideL = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(65);
                 let sideR = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(-65);
 
                 let wL = new THREE.Mesh(new THREE.BoxGeometry(2, 20, p1.distanceTo(p2)+2), wallMat);
-                wL.position.set((p1.x+p2.x)/2 + sideL.x, 10, (p1.y+p2.y)/2 + sideL.z);
-                wL.lookAt(p2.x + sideL.x, 10, p2.y + sideL.z);
+                wL.position.set((p1.x+p2.x)/2 + sideL.x, 10, (p1.z+p2.z)/2 + sideL.z);
+                wL.lookAt(p2.x + sideL.x, 10, p2.z + sideL.z);
                 wallGroup.add(wL);
 
                 let wR = new THREE.Mesh(new THREE.BoxGeometry(2, 20, p1.distanceTo(p2)+2), wallMat);
-                wR.position.set((p1.x+p2.x)/2 + sideR.x, 10, (p1.y+p2.y)/2 + sideR.z);
-                wR.lookAt(p2.x + sideR.x, 10, p2.y + sideR.z);
+                wR.position.set((p1.x+p2.x)/2 + sideR.x, 10, (p1.z+p2.z)/2 + sideR.z);
+                wR.lookAt(p2.x + sideR.x, 10, p2.z + sideR.z);
                 wallGroup.add(wR);
             }
             scene.add(wallGroup);
@@ -118,17 +134,16 @@
 
             const body = new THREE.Mesh(new THREE.BoxGeometry(5, 1.2, 10), chrome);
             body.position.y = 1; carGroup.add(body);
-            
             const pL = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 6), cyanNeon);
             pL.position.set(2.6, 0.8, 0); carGroup.add(pL);
             const pR = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 6), limeNeon);
             pR.position.set(-2.6, 0.8, 0); carGroup.add(pR);
 
-            carGroup.position.set(1500, 0, -50);
+            carGroup.position.set(1000, 0, -100);
             scene.add(carGroup);
         }
 
-        function resetCar() { speed = 0; playerYaw = 0; carGroup.position.set(1500, 0, -50); }
+        function resetCar() { speed = 0; playerYaw = 0; carGroup.position.set(1000, 0, -100); }
 
         function activateNitro() {
             nitroCooldown = true; nitroMult = 5;
@@ -139,10 +154,10 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            let accel = 0.12 * nitroMult;
-            if (keys['KeyW']) speed = Math.min(speed + accel, 5.2 * nitroMult);
+            let accel = 0.14 * nitroMult; 
+            if (keys['KeyW']) speed = Math.min(speed + accel, 5.5 * nitroMult);
             else if (keys['KeyS']) speed = Math.max(speed - 0.2, -2);
-            else speed *= 0.98;
+            else speed *= 0.985;
 
             if (keys['KeyA']) playerYaw += 0.045;
             if (keys['KeyD']) playerYaw -= 0.045;
@@ -150,20 +165,27 @@
             let nextX = carGroup.position.x + Math.sin(playerYaw) * speed;
             let nextZ = carGroup.position.z + Math.cos(playerYaw) * speed;
             
-            let dist = Math.sqrt(nextX**2 + nextZ**2);
-            if (Math.abs(dist - 1500) > 60) { speed *= -0.4; } 
+            // Wall Collision Logic for Oval
+            let distToCenter = Infinity;
+            trackPoints.forEach(p => {
+                let d = new THREE.Vector3(nextX, 0, nextZ).distanceTo(p);
+                if(d < distToCenter) distToCenter = d;
+            });
+
+            if (distToCenter > 60) { speed *= -0.4; } 
             else { carGroup.position.set(nextX, 0, nextZ); }
 
             carGroup.rotation.y = playerYaw;
 
-            if (carGroup.position.z > 0 && carGroup.position.x > 1400 && !lapActive) {
+            // Lap Trigger (Right Straight)
+            if (carGroup.position.x > 900 && carGroup.position.z > 0 && !lapActive) {
                 lapActive = true; startTime = Date.now();
             }
             if (lapActive) {
                 let ms = Date.now() - startTime;
                 document.getElementById('currTime').innerText = formatTime(ms);
-                if (carGroup.position.x < -1400) checkpointReached = true;
-                if (carGroup.position.x > 1450 && carGroup.position.z < 10 && checkpointReached) {
+                if (carGroup.position.x < -900) checkpointReached = true;
+                if (carGroup.position.x > 900 && carGroup.position.z < -100 && checkpointReached) {
                     if (ms < bestTime) { bestTime = ms; document.getElementById('bestTime').innerText = "BEST: " + formatTime(ms); }
                     checkpointReached = false; startTime = Date.now();
                 }
