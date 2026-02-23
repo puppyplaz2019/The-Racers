@@ -1,40 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Racers - V112 Friction & Drag</title>
+    <title>The Racers - Mobile Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; background: #050508; font-family: 'Courier New', monospace; color: #fff; }
-        #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 12px; border-radius: 8px; border: 1px solid #00ffff; pointer-events: none; z-index: 10; }
-        #timerBox { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); padding: 10px; border: 2px solid #00ffff; border-radius: 10px; text-align: center; min-width: 160px; box-shadow: 0 0 10px #00ffff; z-index: 10; }
-        #nitroBox { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 8px 20px; border-radius: 20px; border: 1px solid #ff0000; font-weight: bold; z-index: 10; }
+        body { margin: 0; overflow: hidden; background: #050508; font-family: 'Courier New', monospace; color: #fff; touch-action: none; user-select: none; -webkit-user-select: none; }
+        #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; border: 1px solid #00ffff; pointer-events: none; z-index: 10; font-size: 10px; }
+        #timerBox { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); padding: 8px; border: 2px solid #00ffff; border-radius: 10px; text-align: center; min-width: 120px; z-index: 10; }
+        #nitroBox { position: absolute; bottom: 100px; right: 20px; background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 20px; border: 1px solid #ff0000; font-weight: bold; font-size: 12px; z-index: 10; }
         
-        #speedoBox { position: absolute; bottom: 150px; left: 20px; background: rgba(0,0,0,0.85); padding: 15px; border-radius: 50%; border: 3px solid #00ffff; width: 80px; height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 15px #00ffff; z-index: 20; }
-        #speedNum { font-size: 28px; font-weight: bold; color: #00ffff; line-height: 1; }
-        #speedUnit { font-size: 10px; color: #fff; margin-top: 2px; }
+        #speedoBox { position: absolute; top: 70px; left: 10px; background: rgba(0,0,0,0.85); padding: 10px; border-radius: 50%; border: 3px solid #00ffff; width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; }
+        #speedNum { font-size: 20px; font-weight: bold; color: #00ffff; }
+        #speedUnit { font-size: 8px; color: #fff; }
 
-        /* Support Buttons Container */
-        #supportPanel { position: absolute; bottom: 195px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 25; }
-        #tipJar { background: linear-gradient(45deg, #111, #00ffff); padding: 12px; border-radius: 10px; border: 2px solid #fff; color: #fff; font-weight: bold; text-align: center; cursor: pointer; box-shadow: 0 0 15px #00ffff; width: 140px; }
-        #sancoBtn { background: #ff0000; padding: 12px; border-radius: 10px; border: 2px solid #fff; color: #fff; font-weight: bold; text-align: center; cursor: pointer; box-shadow: 0 0 15px #ff0000; text-decoration: none; width: 140px; font-size: 12px; display: block; }
+        /* Mobile Controls */
+        .touch-controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; z-index: 50; pointer-events: none; }
+        .control-group { display: flex; gap: 15px; pointer-events: auto; }
+        .t-btn { width: 70px; height: 70px; background: rgba(255,255,255,0.1); border: 2px solid #00ffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #00ffff; font-size: 24px; -webkit-tap-highlight-color: transparent; }
+        .t-btn:active { background: #00ffff; color: #000; }
+        .pedal { width: 80px; height: 100px; border-radius: 10px; font-size: 14px; }
+        #btn-nitro { background: rgba(255, 0, 0, 0.2); border-color: #ff0000; color: #ff0000; width: 60px; height: 60px; margin-bottom: 10px; }
 
-        #commentBox { position: absolute; bottom: 20px; left: 20px; background: rgba(10,10,10,0.9); padding: 15px; border: 1px solid #555; width: 280px; border-radius: 5px; z-index: 20; }
-        #commentList { height: 80px; overflow-y: auto; font-size: 11px; margin-bottom: 5px; border-bottom: 1px solid #333; }
-        #djDeck { position: absolute; bottom: 20px; right: 20px; background: #111; padding: 15px; border: 2px solid #a020f0; width: 260px; z-index: 20; }
-        .btn { cursor: pointer; background: #32cd32; color: #000; border: none; padding: 5px 10px; font-weight: bold; }
-        #overlay { position: absolute; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        #supportPanel { position: absolute; top: 140px; left: 10px; display: flex; flex-direction: column; gap: 5px; z-index: 25; transform: scale(0.8); transform-origin: left top; }
+        #tipJar, #sancoBtn { padding: 8px; border-radius: 5px; border: 1px solid #fff; color: #fff; font-weight: bold; text-align: center; text-decoration: none; font-size: 10px; width: 100px; display: block; }
+        #tipJar { background: #00ffff; color: #000; }
+        #sancoBtn { background: #ff0000; }
+
+        #overlay { position: absolute; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; }
+        #resetBtn { position: absolute; top: 10px; right: 10px; background: #333; border: 1px solid #888; color: #fff; padding: 10px; border-radius: 5px; z-index: 60; }
     </style>
 </head>
 <body>
 
     <div id="overlay">
-        <h1 style="color:#ffffff; letter-spacing:12px; text-shadow: 0 0 20px #00ffff;">THE RACERS</h1>
-        <p style="color:#00ffff;">V112: FRICTION WALLS & MEGA STRAIGHTS</p>
-        <button class="btn" style="font-size:18px; padding:12px 40px; background:#fff; margin-top:20px;" onclick="start()">IGNITION</button>
+        <h1 style="color:#ffffff; letter-spacing:5px; font-size: 2rem;">THE RACERS</h1>
+        <p style="color:#00ffff; font-size: 0.8rem;">MOBILE V113: TOUCH CONTROLS</p>
+        <button style="font-size:18px; padding:12px 40px; background:#fff; margin-top:20px; cursor:pointer;" onclick="start()">IGNITION</button>
     </div>
 
+    <button id="resetBtn" onclick="resetCar()">RESET (R)</button>
+
     <div id="timerBox">
-        <div id="currTime" style="font-size: 22px; font-weight: bold;">00:00.00</div>
-        <div id="bestTime" style="font-size: 11px; color: #32cd32;">BEST: --:--.--</div>
+        <div id="currTime" style="font-size: 18px; font-weight: bold;">00:00.00</div>
+        <div id="bestTime" style="font-size: 9px; color: #32cd32;">BEST: --:--.--</div>
     </div>
 
     <div id="speedoBox">
@@ -42,39 +50,32 @@
         <div id="speedUnit">MPH</div>
     </div>
 
-    <div id="nitroBox">NITRO: READY (SHIFT)</div>
-
-    <div id="ui">
-        <b>WASD</b>: Drive | <b>SHIFT</b>: Nitro<br>
-        <b>R</b>: Reset | <small style="color: #00ffff;">Scrape the walls to slow down!</small>
-    </div>
+    <div id="nitroBox">NITRO: READY</div>
 
     <div id="supportPanel">
         <div id="tipJar" onclick="window.open('https://www.sanangelogives.org/organization/emmanuelschooloffinearts')">🥁 TIP ESOFA</div>
         <a id="sancoBtn" href="https://www.youtube.com/@SancoOutdoors" target="_blank">🎬 SUB TO SANCO</a>
     </div>
 
-    <div id="commentBox">
-        <b>💬 CHAT</b>
-        <div id="commentList">Sliding physics enabled. Long straights active.</div>
-        <div style="display:flex; gap:3px;">
-            <input type="text" id="comInput" style="background:#000; color:#fff; border:1px solid #333; flex-grow:1;" placeholder="Talk...">
-            <button class="btn" onclick="addComment()">></button>
+    <div class="touch-controls">
+        <div class="control-group">
+            <div class="t-btn" id="btn-left">←</div>
+            <div class="t-btn" id="btn-right">→</div>
+        </div>
+        <div class="control-group" style="flex-direction: column; align-items: flex-end;">
+            <div class="t-btn" id="btn-nitro">N2O</div>
+            <div style="display: flex; gap: 10px;">
+                <div class="t-btn pedal" style="border-color: #ff4444; color: #ff4444;" id="btn-brake">BRAKE</div>
+                <div class="t-btn pedal" id="btn-gas">GAS</div>
+            </div>
         </div>
     </div>
 
-    <div id="djDeck">
-        <b>🎵 DJ DECK</b><br>
-        <iframe id="playerFrame" style="display:none; width:100%; height:60px; margin-top:5px;" allow="autoplay"></iframe>
-        <input type="text" id="musicLink" style="width:70%; background:#000; color:#fff;" placeholder="YouTube Link">
-        <button class="btn" onclick="playLink()">PLAY</button>
-    </div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
     <script>
         let scene, camera, renderer, carGroup, ghostGroup, wallGroup;
         let keys = {}, playerYaw = 0, speed = 0;
+        let touchKeys = { W: false, A: false, S: false, D: false };
         let startTime = 0, bestTime = Infinity, lapActive = false, checkpointReached = false;
         let nitroCooldown = false, nitroMult = 1;
         let currentLapData = [], bestLapData = [], ghostFrame = 0;
@@ -99,7 +100,7 @@
             for(let i=0; i<=40; i++) { let a = Math.PI + (i/40)*Math.PI; trackMidpoints.push(new THREE.Vector3(Math.cos(a)*rad, 0, -sLen/2 + Math.sin(a)*rad)); }
 
             wallGroup = new THREE.Group();
-            const wallMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+            const wallMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
             
             for(let i=0; i < trackMidpoints.length; i++){
                 let p1 = trackMidpoints[i], p2 = trackMidpoints[(i+1)%trackMidpoints.length];
@@ -118,13 +119,28 @@
             createCar();
             createGhost();
 
+            // Keyboard Listeners
             window.addEventListener('keydown', e => {
                 keys[e.code] = true;
                 if(e.code === 'ShiftLeft' && !nitroCooldown) activateNitro();
                 if(e.code === 'KeyR') resetCar();
             });
             window.addEventListener('keyup', e => delete keys[e.code]);
+
+            // Touch Control Listeners
+            setupTouchBtn('btn-left', 'A');
+            setupTouchBtn('btn-right', 'D');
+            setupTouchBtn('btn-gas', 'W');
+            setupTouchBtn('btn-brake', 'S');
+            document.getElementById('btn-nitro').addEventListener('touchstart', (e) => { e.preventDefault(); if(!nitroCooldown) activateNitro(); });
+
             animate();
+        }
+
+        function setupTouchBtn(id, key) {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); touchKeys[key] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); touchKeys[key] = false; });
         }
 
         function createCar() {
@@ -156,17 +172,19 @@
                 document.getElementById('speedoBox').style.borderColor = "#00ffff";
                 document.getElementById('speedNum').style.color = "#00ffff";
             }, 1000);
-            setTimeout(() => { nitroCooldown = false; document.getElementById('nitroBox').innerText = "NITRO: READY (SHIFT)"; }, 6000);
+            setTimeout(() => { nitroCooldown = false; document.getElementById('nitroBox').innerText = "NITRO: READY"; }, 6000);
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            if (keys['KeyW']) speed = Math.min(speed + (0.15 * nitroMult), 5.6 * nitroMult);
-            else if (keys['KeyS']) speed = Math.max(speed - 0.2, -2);
+            
+            // Check Keyboard AND Touch
+            if (keys['KeyW'] || touchKeys['W']) speed = Math.min(speed + (0.15 * nitroMult), 5.6 * nitroMult);
+            else if (keys['KeyS'] || touchKeys['S']) speed = Math.max(speed - 0.2, -2);
             else speed *= 0.985;
 
-            if (keys['KeyA']) playerYaw += 0.045;
-            if (keys['KeyD']) playerYaw -= 0.045;
+            if (keys['KeyA'] || touchKeys['A']) playerYaw += 0.045;
+            if (keys['KeyD'] || touchKeys['D']) playerYaw -= 0.045;
 
             document.getElementById('speedNum').innerText = Math.abs(Math.floor(speed * 40));
 
@@ -220,8 +238,12 @@
             let s = Math.floor(ms/1000), c = Math.floor((ms%1000)/10);
             return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}.${c.toString().padStart(2,'0')}`;
         }
-        function addComment() { const i = document.getElementById('comInput'); if(i.value) { document.getElementById('commentList').innerHTML += `<div><b>Racer:</b> ${i.value}</div>`; i.value = ""; } }
-        function playLink() { const u = document.getElementById('musicLink').value; let id = u.includes("v=") ? u.split("v=")[1].split("&")[0] : u.split("youtu.be/")[1]; if(id) { document.getElementById('playerFrame').style.display = "block"; document.getElementById('playerFrame').src = `https://www.youtube.com/embed/${id}?autoplay=1`; } }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
