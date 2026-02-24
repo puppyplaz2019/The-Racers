@@ -6,9 +6,9 @@
     <title>The Racers: Connected Edition</title>
     <style>
         body { margin: 0; background: #222; overflow: hidden; font-family: 'Arial', sans-serif; touch-action: none; }
-        #ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; color: white; pointer-events: none; text-shadow: 2px 2px #000; }
-        .controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-around; }
-        .btn { width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 2px solid #fff; }
+        #ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; color: white; pointer-events: none; text-shadow: 2px 2px #000; z-index: 10; }
+        .controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 10; }
+        .btn { width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 2px solid #fff; user-select: none; }
         canvas { display: block; background: #444; }
     </style>
 </head>
@@ -33,20 +33,36 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 // --- HUB CONNECTION ---
+// Pull the skin color you bought in the Hub
 const carColor = localStorage.getItem('active_skin_hex') || '#ff0000';
+// Pull your existing best time
 let bestTime = parseFloat(localStorage.getItem('the_racers_best') || 99.99);
 document.getElementById('best').innerText = bestTime === 99.99 ? "0.00" : bestTime.toFixed(2);
 
 const car = { x: canvas.width/2, y: canvas.height - 150, w: 40, h: 70, speed: 0, angle: 0 };
 const keys = { left: false, right: false, gas: false };
 
-// Touch Handling
+// Touch Handling for Mobile
 function setupTouch(id, key) {
     const el = document.getElementById(id);
     el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
     el.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
 }
-setupTouch('left', 'left'); setupTouch('right', 'right'); setupTouch('gas', 'gas');
+setupTouch('left', 'left'); 
+setupTouch('right', 'right'); 
+setupTouch('gas', 'gas');
+
+// Keyboard Support
+window.addEventListener('keydown', (e) => {
+    if(e.code === 'ArrowLeft') keys.left = true;
+    if(e.code === 'ArrowRight') keys.right = true;
+    if(e.code === 'ArrowUp') keys.gas = true;
+});
+window.addEventListener('keyup', (e) => {
+    if(e.code === 'ArrowLeft') keys.left = false;
+    if(e.code === 'ArrowRight') keys.right = false;
+    if(e.code === 'ArrowUp') keys.gas = false;
+});
 
 let startTime = Date.now();
 let lapFinished = false;
@@ -57,6 +73,7 @@ function update() {
     let elapsed = (Date.now() - startTime) / 1000;
     document.getElementById('time').innerText = elapsed.toFixed(2);
 
+    // Physics
     if (keys.gas) car.speed = Math.min(car.speed + 0.2, 8);
     else car.speed *= 0.98;
 
@@ -72,6 +89,10 @@ function update() {
         finishLap(elapsed);
     }
 
+    // Boundary Bounce (Keep car on screen)
+    if (car.x < 0) car.x = 0;
+    if (car.x > canvas.width) car.x = canvas.width;
+
     draw();
     requestAnimationFrame(update);
 }
@@ -79,30 +100,46 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Road boundaries
-    ctx.strokeStyle = "#fff"; ctx.lineWidth = 5;
-    ctx.strokeRect(50, -1000, canvas.width - 100, 2000);
+    // Draw Road
+    ctx.strokeStyle = "#666";
+    ctx.lineWidth = 2;
+    for(let i=0; i<canvas.width; i+=50) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+    }
 
-    // Car
+    // Car Rendering
     ctx.save();
     ctx.translate(car.x, car.y);
     ctx.rotate(car.angle);
-    ctx.fillStyle = carColor; // USES HUB COLOR
+    
+    // Main Body (Hub Color)
+    ctx.fillStyle = carColor; 
     ctx.fillRect(-car.w/2, -car.h/2, car.w, car.h);
+    
     // Windshield
     ctx.fillStyle = "rgba(255,255,255,0.5)";
     ctx.fillRect(-car.w/2 + 5, -car.h/2 + 10, car.w - 10, 15);
+    
+    // Tail lights
+    ctx.fillStyle = "red";
+    ctx.fillRect(-car.w/2, car.h/2 - 5, 10, 5);
+    ctx.fillRect(car.w/2 - 10, car.h/2 - 5, 10, 5);
+    
     ctx.restore();
 }
 
 function finishLap(time) {
+    // If this time is better than the saved best, update LocalStorage
     if (time < bestTime) {
         localStorage.setItem('the_racers_best', time);
         alert("NEW WORLD RECORD: " + time.toFixed(2) + "s");
     } else {
         alert("LAP TIME: " + time.toFixed(2) + "s");
     }
-    window.location.href = 'index.html'; // Back to Hub
+    // Return to the Hub
+    window.location.href = 'index.html'; 
 }
 
 update();
