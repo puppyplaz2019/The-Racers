@@ -75,11 +75,12 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // --- HUB SYNC ---
-        const activeSkinHex = localStorage.getItem('active_skin_hex') || 0xffffff;
+        // --- HUB SYNC & RAINBOW LOGIC ---
+        const activeSkinHex = localStorage.getItem('active_skin_hex') || '#ffffff';
+        const isRainbow = (activeSkinHex === 'rainbow');
         const savedBest = localStorage.getItem('the_racers_best_ms');
         
-        let scene, camera, renderer, carGroup, ghostGroup, wallGroup;
+        let scene, camera, renderer, carGroup, ghostGroup, wallGroup, carMaterial;
         let keys = {}, playerYaw = 0, speed = 0;
         let touchKeys = { W: false, A: false, S: false, D: false };
         let startTime = 0, lapActive = false, checkpointReached = false;
@@ -87,7 +88,6 @@
         let currentLapData = [], bestLapData = [], ghostFrame = 0;
         let trackMidpoints = [];
         
-        // Initialize bestTime from Storage
         let bestTime = savedBest ? parseInt(savedBest) : Infinity;
 
         function start() { 
@@ -156,8 +156,11 @@
 
         function createCar() {
             carGroup = new THREE.Group();
-            // BODY USES HUB COLOR
-            const body = new THREE.Mesh(new THREE.BoxGeometry(5, 1.2, 10), new THREE.MeshStandardMaterial({ color: activeSkinHex, metalness: 0.8, roughness: 0.2 }));
+            // Assign color based on standard hex OR initialize to white if rainbow
+            let initialColor = isRainbow ? 0xffffff : activeSkinHex;
+            carMaterial = new THREE.MeshStandardMaterial({ color: initialColor, metalness: 0.8, roughness: 0.2 });
+            
+            const body = new THREE.Mesh(new THREE.BoxGeometry(5, 1.2, 10), carMaterial);
             body.position.y = 1; carGroup.add(body);
             carGroup.position.set(1000, 0, -1400);
             scene.add(carGroup);
@@ -190,6 +193,13 @@
         function animate() {
             requestAnimationFrame(animate);
             
+            // --- RAINBOW EFFECT UPDATE ---
+            if (isRainbow && carMaterial) {
+                // Shift hue over time (cycles every 2 seconds)
+                let hue = (Date.now() % 2000) / 2000;
+                carMaterial.color.setHSL(hue, 1.0, 0.5);
+            }
+
             if (keys['KeyW'] || touchKeys['W']) speed = Math.min(speed + (0.15 * nitroMult), 5.6 * nitroMult);
             else if (keys['KeyS'] || touchKeys['S']) speed = Math.max(speed - 0.2, -2);
             else speed *= 0.985;
