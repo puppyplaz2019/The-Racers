@@ -4,275 +4,40 @@
     <title>The Racers - Mobile Edition</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; background: #050508; font-family: 'Courier New', monospace; color: #fff; touch-action: none; user-select: none; -webkit-user-select: none; }
-        #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; border: 1px solid #00ffff; pointer-events: none; z-index: 10; font-size: 10px; }
-        #timerBox { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); padding: 8px; border: 2px solid #00ffff; border-radius: 10px; text-align: center; min-width: 120px; z-index: 10; }
-        #nitroBox { position: absolute; bottom: 100px; right: 20px; background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 20px; border: 1px solid #ff0000; font-weight: bold; font-size: 12px; z-index: 10; }
-        
-        #speedoBox { position: absolute; top: 70px; left: 10px; background: rgba(0,0,0,0.85); padding: 10px; border-radius: 50%; border: 3px solid #00ffff; width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; }
-        #speedNum { font-size: 20px; font-weight: bold; color: #00ffff; }
-        #speedUnit { font-size: 8px; color: #fff; }
-
-        .touch-controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; z-index: 50; pointer-events: none; }
-        .control-group { display: flex; gap: 15px; pointer-events: auto; }
-        .t-btn { width: 70px; height: 70px; background: rgba(255,255,255,0.1); border: 2px solid #00ffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #00ffff; font-size: 24px; -webkit-tap-highlight-color: transparent; }
-        .t-btn:active { background: #00ffff; color: #000; }
-        .pedal { width: 80px; height: 100px; border-radius: 10px; font-size: 14px; }
-        #btn-nitro { background: rgba(255, 0, 0, 0.2); border-color: #ff0000; color: #ff0000; width: 60px; height: 60px; margin-bottom: 10px; }
-
-        #supportPanel { position: absolute; top: 140px; left: 10px; display: flex; flex-direction: column; gap: 5px; z-index: 25; transform: scale(0.8); transform-origin: left top; }
-        #tipJar, #sancoBtn { padding: 8px; border-radius: 5px; border: 1px solid #fff; color: #fff; font-weight: bold; text-align: center; text-decoration: none; font-size: 10px; width: 100px; display: block; }
-        #tipJar { background: #00ffff; color: #000; }
-        #sancoBtn { background: #ff0000; }
-
-        #overlay { position: absolute; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; }
-        #resetBtn { position: absolute; top: 10px; right: 10px; background: #333; border: 1px solid #888; color: #fff; padding: 10px; border-radius: 5px; z-index: 60; }
-        #hubBtn { position: absolute; top: 10px; left: 10px; background: #00ffff; border: none; color: #000; padding: 10px; border-radius: 5px; z-index: 60; font-weight: bold; text-decoration: none; font-size: 12px; }
+        body{margin:0;overflow:hidden;background:#050508;font-family:'Courier New',monospace;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
+        #timerBox{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:#000e;padding:8px;border:2px solid #0ff;border-radius:10px;text-align:center;min-width:120px;z-index:10}
+        #nitroBox{position:absolute;bottom:100px;right:20px;background:#000c;padding:5px 15px;border-radius:20px;border:1px solid red;font-weight:bold;font-size:12px;z-index:10}
+        #speedoBox{position:absolute;top:70px;left:10px;background:#000d;padding:10px;border-radius:50%;border:3px solid #0ff;width:60px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20}
+        #speedNum{font-size:20px;font-weight:bold;color:#0ff}#speedUnit{font-size:8px}
+        .touch-controls{position:absolute;bottom:20px;width:100%;display:flex;justify-content:space-between;padding:0 20px;box-sizing:border-box;z-index:50;pointer-events:none}.control-group{display:flex;gap:15px;pointer-events:auto}
+        .t-btn{width:70px;height:70px;background:#ffffff1a;border:2px solid #0ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#0ff;font-size:24px;-webkit-tap-highlight-color:transparent}.t-btn:active{background:#0ff;color:#000}.pedal{width:80px;height:100px;border-radius:10px;font-size:14px}#btn-nitro{background:#f002;border-color:red;color:red;width:60px;height:60px;margin-bottom:10px}
+        #supportPanel{position:absolute;top:140px;left:10px;display:flex;flex-direction:column;gap:5px;z-index:25;transform:scale(.8);transform-origin:left top}#tipJar,#sancoBtn{padding:8px;border-radius:5px;border:1px solid #fff;color:#fff;font-weight:bold;text-align:center;text-decoration:none;font-size:10px;width:100px;display:block}#tipJar{background:#0ff;color:#000}#sancoBtn{background:red}
+        #overlay{position:absolute;width:100%;height:100%;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;text-align:center}#resetBtn{position:absolute;top:10px;right:10px;background:#333;border:1px solid #888;color:#fff;padding:10px;border-radius:5px;z-index:60}#hubBtn{position:absolute;top:10px;left:10px;background:#0ff;color:#000;padding:10px;border-radius:5px;z-index:60;font-weight:bold;text-decoration:none;font-size:12px}
     </style>
 </head>
 <body>
-
-    <a href="index.html" id="hubBtn">EXIT TO HUB</a>
-
-    <div id="overlay">
-        <h1 style="color:#ffffff; letter-spacing:5px; font-size: 2rem;">THE RACERS</h1>
-        <p style="color:#00ffff; font-size: 0.8rem;">3D MOBILE EDITION: IGNITION READY</p>
-        <button style="font-size:18px; padding:12px 40px; background:#fff; margin-top:20px; cursor:pointer;" onclick="start()">IGNITION</button>
-    </div>
-
-    <button id="resetBtn" onclick="resetCar()">RESET (R)</button>
-
-    <div id="timerBox">
-        <div id="currTime" style="font-size: 18px; font-weight: bold;">00:00.00</div>
-        <div id="bestTime" style="font-size: 9px; color: #32cd32;">BEST: --:--.--</div>
-    </div>
-
-    <div id="speedoBox">
-        <div id="speedNum">0</div>
-        <div id="speedUnit">MPH</div>
-    </div>
-
-    <div id="nitroBox">NITRO: READY</div>
-
-    <div id="supportPanel">
-        <div id="tipJar" onclick="window.open('https://www.sanangelogives.org/organization/emmanuelschooloffinearts')">🥁 TIP ESOFA</div>
-        <a id="sancoBtn" href="https://www.youtube.com/@SancoOutdoors" target="_blank">🎬 SUB TO SANCO</a>
-    </div>
-
-    <div class="touch-controls">
-        <div class="control-group">
-            <div class="t-btn" id="btn-left">←</div>
-            <div class="t-btn" id="btn-right">→</div>
-        </div>
-        <div class="control-group" style="flex-direction: column; align-items: flex-end;">
-            <div class="t-btn" id="btn-nitro">N2O</div>
-            <div style="display: flex; gap: 10px;">
-                <div class="t-btn pedal" style="border-color: #ff4444; color: #ff4444;" id="btn-brake">BRAKE</div>
-                <div class="t-btn pedal" id="btn-gas">GAS</div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script>
-        const activeSkinHex = localStorage.getItem('active_skin_hex') || '#ffffff';
-        const isRainbow = (activeSkinHex === 'rainbow');
-        const savedBest = localStorage.getItem('the_racers_best_ms');
-        
-        let scene, camera, renderer, carGroup, ghostGroup, wallGroup, carMaterial;
-        let keys = {}, playerYaw = 0, speed = 0;
-        let touchKeys = { W: false, A: false, S: false, D: false };
-        let startTime = 0, lapActive = false, checkpointReached = false;
-        let nitroCooldown = false, nitroMult = 1, nitroAutoDrive = false;
-        let currentLapData = [], bestLapData = [], ghostFrame = 0;
-        let trackMidpoints = [];
-        let bestTime = savedBest ? parseInt(savedBest) : Infinity;
-
-        function start() { 
-            document.getElementById('overlay').style.display = 'none'; 
-            if(bestTime !== Infinity) document.getElementById('bestTime').innerText = "BEST: " + formatTime(bestTime);
-            init(); 
-        }
-
-        function init() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x020205);
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 30000);
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
-
-            scene.add(new THREE.GridHelper(20000, 200, 0x00ffff, 0x050505));
-
-            const sLen = 3000; const rad = 1000;
-            for(let i=0; i<40; i++) trackMidpoints.push(new THREE.Vector3(rad, 0, (i/40)*sLen - sLen/2));
-            for(let i=0; i<=40; i++) { let a = (i/40)*Math.PI; trackMidpoints.push(new THREE.Vector3(Math.cos(a)*rad, 0, sLen/2 + Math.sin(a)*rad)); }
-            for(let i=0; i<40; i++) trackMidpoints.push(new THREE.Vector3(-rad, 0, sLen/2 - (i/40)*sLen));
-            for(let i=0; i<=40; i++) { let a = Math.PI + (i/40)*Math.PI; trackMidpoints.push(new THREE.Vector3(Math.cos(a)*rad, 0, -sLen/2 + Math.sin(a)*rad)); }
-
-            wallGroup = new THREE.Group();
-            const wallMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
-            
-            for(let i=0; i < trackMidpoints.length; i++){
-                let p1 = trackMidpoints[i], p2 = trackMidpoints[(i+1)%trackMidpoints.length];
-                let dir = new THREE.Vector3().subVectors(p2, p1).normalize();
-                let sideVec = new THREE.Vector3(-dir.z, 0, dir.x);
-                [75, -75].forEach(offset => {
-                    let w = new THREE.Mesh(new THREE.BoxGeometry(2, 40, p1.distanceTo(p2) + 2), wallMat);
-                    let side = sideVec.clone().multiplyScalar(offset);
-                    w.position.set((p1.x+p2.x)/2 + side.x, 20, (p1.z+p2.z)/2 + side.z);
-                    w.lookAt(p2.x + side.x, 20, p2.z + side.z);
-                    wallGroup.add(w);
-                });
-            }
-            scene.add(wallGroup);
-            scene.add(new THREE.AmbientLight(0xffffff, 2.0));
-            createCar();
-            createGhost();
-
-            window.addEventListener('keydown', e => {
-                keys[e.code] = true;
-                if(e.code === 'ShiftLeft' && !nitroCooldown) activateNitro();
-                if(e.code === 'KeyR') resetCar();
-            });
-            window.addEventListener('keyup', e => delete keys[e.code]);
-
-            setupTouchBtn('btn-left', 'A');
-            setupTouchBtn('btn-right', 'D');
-            setupTouchBtn('btn-gas', 'W');
-            setupTouchBtn('btn-brake', 'S');
-            document.getElementById('btn-nitro').addEventListener('touchstart', (e) => { e.preventDefault(); if(!nitroCooldown) activateNitro(); });
-
-            animate();
-        }
-
-        function setupTouchBtn(id, key) {
-            const btn = document.getElementById(id);
-            btn.addEventListener('touchstart', (e) => { e.preventDefault(); touchKeys[key] = true; });
-            btn.addEventListener('touchend', (e) => { e.preventDefault(); touchKeys[key] = false; });
-        }
-
-        function createCar() {
-            carGroup = new THREE.Group();
-            let initialColor = isRainbow ? 0xffffff : activeSkinHex;
-            carMaterial = new THREE.MeshStandardMaterial({ color: initialColor, metalness: 0.8, roughness: 0.2 });
-            const body = new THREE.Mesh(new THREE.BoxGeometry(5, 1.2, 10), carMaterial);
-            body.position.y = 1; carGroup.add(body);
-            carGroup.position.set(1000, 0, -1400);
-            scene.add(carGroup);
-        }
-
-        function createGhost() {
-            ghostGroup = new THREE.Group();
-            const ghostMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.3, wireframe: true });
-            ghostGroup.add(new THREE.Mesh(new THREE.BoxGeometry(5, 1.2, 10), ghostMat));
-            ghostGroup.visible = false;
-            scene.add(ghostGroup);
-        }
-
-        function resetCar() { speed = 0; playerYaw = 0; carGroup.position.set(1000, 0, -1400); carGroup.rotation.y = 0; }
-
-        function activateNitro() {
-            nitroCooldown = true; 
-            nitroMult = 5;
-            nitroAutoDrive = true; // NEW: Forces motion even without GAS button
-            document.getElementById('nitroBox').innerText = "NITRO: ACTIVE!!";
-            document.getElementById('speedoBox').style.borderColor = "#ff0000";
-            document.getElementById('speedNum').style.color = "#ff0000";
-            
-            setTimeout(() => { 
-                nitroMult = 1; 
-                nitroAutoDrive = false; 
-                document.getElementById('nitroBox').innerText = "NITRO: COOLING...";
-                document.getElementById('speedoBox').style.borderColor = "#00ffff";
-                document.getElementById('speedNum').style.color = "#00ffff";
-            }, 1000);
-            setTimeout(() => { nitroCooldown = false; document.getElementById('nitroBox').innerText = "NITRO: READY"; }, 6000);
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            if (isRainbow && carMaterial) {
-                let hue = (Date.now() % 2000) / 2000;
-                carMaterial.color.setHSL(hue, 1.0, 0.5);
-            }
-
-            // MODIFIED PHYSICS: nitroAutoDrive overrides Gas input
-            if (keys['KeyW'] || touchKeys['W'] || nitroAutoDrive) {
-                let accel = nitroAutoDrive ? 1.5 : 0.15;
-                speed = Math.min(speed + (accel * nitroMult), 5.6 * nitroMult);
-            }
-            else if (keys['KeyS'] || touchKeys['S']) speed = Math.max(speed - 0.2, -2);
-            else speed *= 0.985;
-
-            if (keys['KeyA'] || touchKeys['A']) playerYaw += 0.045;
-            if (keys['KeyD'] || touchKeys['D']) playerYaw -= 0.045;
-
-            document.getElementById('speedNum').innerText = Math.abs(Math.floor(speed * 40));
-
-            let nextX = carGroup.position.x + Math.sin(playerYaw) * speed;
-            let nextZ = carGroup.position.z + Math.cos(playerYaw) * speed;
-            
-            let onTrack = false;
-            for(let i=0; i < trackMidpoints.length; i++){
-                let p1 = trackMidpoints[i], p2 = trackMidpoints[(i+1)%trackMidpoints.length];
-                let l2 = p1.distanceToSquared(p2);
-                let t = Math.max(0, Math.min(1, ((nextX - p1.x) * (p2.x - p1.x) + (nextZ - p1.z) * (p2.z - p1.z)) / l2));
-                let projX = p1.x + t * (p2.x - p1.x);
-                let projZ = p1.z + t * (p2.z - p1.z);
-                let dist = Math.sqrt((nextX - projX)**2 + (nextZ - projZ)**2);
-                if(dist < 72) { onTrack = true; break; }
-            }
-
-            if (!onTrack) { speed = Math.max(0, speed - 0.625); } 
-            else { carGroup.position.set(nextX, 0, nextZ); }
-            
-            carGroup.rotation.y = playerYaw;
-
-            if (lapActive && bestLapData.length > 0) {
-                ghostGroup.visible = true;
-                if (ghostFrame < bestLapData.length) {
-                    ghostGroup.position.set(bestLapData[ghostFrame].x, 0, bestLapData[ghostFrame].z);
-                    ghostGroup.rotation.y = bestLapData[ghostFrame].yaw;
-                    ghostFrame++;
-                }
-            }
-
-            if (carGroup.position.x > 800 && carGroup.position.z > 500 && !lapActive) {
-                lapActive = true; startTime = Date.now(); currentLapData = []; ghostFrame = 0;
-            }
-            if (lapActive) {
-                currentLapData.push({x: carGroup.position.x, z: carGroup.position.z, yaw: carGroup.rotation.y});
-                let ms = Date.now() - startTime;
-                document.getElementById('currTime').innerText = formatTime(ms);
-                if (carGroup.position.x < -800) checkpointReached = true;
-                if (carGroup.position.x > 800 && carGroup.position.z < -500 && checkpointReached) {
-                    if (ms < bestTime) { 
-                        bestTime = ms; 
-                        bestLapData = [...currentLapData]; 
-                        document.getElementById('bestTime').innerText = "BEST: " + formatTime(ms);
-                        localStorage.setItem('the_racers_best_ms', ms);
-                        localStorage.setItem('the_racers_best', (ms/1000).toFixed(2));
-                    }
-                    checkpointReached = false; startTime = Date.now(); currentLapData = []; ghostFrame = 0;
-                }
-            }
-            camera.position.set(carGroup.position.x - Math.sin(playerYaw)*55, 30, carGroup.position.z - Math.cos(playerYaw)*55);
-            camera.lookAt(carGroup.position);
-            renderer.render(scene, camera);
-        }
-
-        function formatTime(ms) {
-            let s = Math.floor(ms/1000), c = Math.floor((ms%1000)/10);
-            return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}.${c.toString().padStart(2,'0')}`;
-        }
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
-</body>
-</html>
+<a href="index.html" id="hubBtn">EXIT TO HUB</a>
+<div id="overlay"><h1 style="color:#fff;letter-spacing:5px;font-size:2rem">THE RACERS</h1><p style="color:#0ff;font-size:.8rem">3D MOBILE EDITION: IGNITION READY</p><button style="font-size:18px;padding:12px 40px;background:#fff;margin-top:20px;cursor:pointer" onclick="start()">IGNITION</button></div>
+<button id="resetBtn" onclick="resetCar()">RESET (R)</button>
+<div id="timerBox"><div id="currTime" style="font-size:18px;font-weight:bold">00:00.00</div><div id="bestTime" style="font-size:9px;color:#32cd32">BEST: --:--.--</div></div>
+<div id="speedoBox"><div id="speedNum">0</div><div id="speedUnit">MPH</div></div><div id="nitroBox">NITRO: READY</div>
+<div id="supportPanel"><div id="tipJar" onclick="window.open('https://www.sanangelogives.org/organization/emmanuelschooloffinearts')">🥁 TIP ESOFA</div><a id="sancoBtn" href="https://www.youtube.com/@SancoOutdoors" target="_blank">🎬 SUB TO SANCO</a></div>
+<div class="touch-controls"><div class="control-group"><div class="t-btn" id="btn-left">←</div><div class="t-btn" id="btn-right">→</div></div><div class="control-group" style="flex-direction:column;align-items:flex-end"><div class="t-btn" id="btn-nitro">N2O</div><div style="display:flex;gap:10px"><div class="t-btn pedal" style="border-color:#f44;color:#f44" id="btn-brake">BRAKE</div><div class="t-btn pedal" id="btn-gas">GAS</div></div></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const skin=localStorage.getItem('active_skin_hex')||'#fff',rainbow=skin==='rainbow',saved=localStorage.getItem('the_racers_best_ms');let scene,camera,renderer,carGroup,ghostGroup,carMaterial,wheels=[],trackMidpoints=[],keys={},touchKeys={W:false,A:false,S:false,D:false},playerYaw=0,speed=0,startTime=0,lapActive=false,checkpointReached=false,nitroCooldown=false,nitroMult=1,nitroAutoDrive=false,currentLapData=[],bestLapData=[],ghostFrame=0,bestTime=saved?parseInt(saved):Infinity;
+function start(){overlay.style.display='none';if(bestTime<Infinity)bestTimeEl.innerText='BEST: '+formatTime(bestTime);init()}
+const bestTimeEl=document.getElementById('bestTime');
+function init(){scene=new THREE.Scene();scene.background=new THREE.Color(0x020205);camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,30000);renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);scene.add(new THREE.GridHelper(20000,200,0x00ffff,0x050505));const len=3000,rad=1000;for(let i=0;i<40;i++)trackMidpoints.push(new THREE.Vector3(rad,0,i/40*len-len/2));for(let i=0;i<=40;i++){let a=i/40*Math.PI;trackMidpoints.push(new THREE.Vector3(Math.cos(a)*rad,0,len/2+Math.sin(a)*rad))}for(let i=0;i<40;i++)trackMidpoints.push(new THREE.Vector3(-rad,0,len/2-i/40*len));for(let i=0;i<=40;i++){let a=Math.PI+i/40*Math.PI;trackMidpoints.push(new THREE.Vector3(Math.cos(a)*rad,0,-len/2+Math.sin(a)*rad))}let walls=new THREE.Group(),wm=new THREE.MeshBasicMaterial({color:0x00ffff,transparent:true,opacity:.2,side:THREE.DoubleSide});trackMidpoints.forEach((p1,i)=>{let p2=trackMidpoints[(i+1)%trackMidpoints.length],dir=new THREE.Vector3().subVectors(p2,p1).normalize(),side=new THREE.Vector3(-dir.z,0,dir.x);[75,-75].forEach(o=>{let w=new THREE.Mesh(new THREE.BoxGeometry(2,40,p1.distanceTo(p2)+2),wm),s=side.clone().multiplyScalar(o);w.position.set((p1.x+p2.x)/2+s.x,20,(p1.z+p2.z)/2+s.z);w.lookAt(p2.x+s.x,20,p2.z+s.z);walls.add(w)})});scene.add(walls);scene.add(new THREE.AmbientLight(0xffffff,2));createCar();createGhost();addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='ShiftLeft'&&!nitroCooldown)activateNitro();if(e.code==='KeyR')resetCar()});addEventListener('keyup',e=>delete keys[e.code]);[['btn-left','A'],['btn-right','D'],['btn-gas','W'],['btn-brake','S']].forEach(x=>setupTouchBtn(...x));document.getElementById('btn-nitro').addEventListener('touchstart',e=>{e.preventDefault();if(!nitroCooldown)activateNitro()});animate()}
+function setupTouchBtn(id,key){let b=document.getElementById(id);['touchstart','mousedown'].forEach(ev=>b.addEventListener(ev,e=>{e.preventDefault();touchKeys[key]=true}));['touchend','touchcancel','mouseup','mouseleave'].forEach(ev=>b.addEventListener(ev,e=>{e.preventDefault();touchKeys[key]=false}))}
+function mat(color,metal=.7,rough=.25){return new THREE.MeshStandardMaterial({color,metalness:metal,roughness:rough})}
+function createCar(){carGroup=new THREE.Group();carMaterial=mat(rainbow?0xffffff:skin,.85,.2);let dark=mat(0x111827,.8,.1),rubber=mat(0x111111,.3,.8),chrome=mat(0x999999,1,.12),red=mat(0x660000,.5,.3),glass=new THREE.MeshStandardMaterial({color:0x10243b,metalness:.8,roughness:.05,transparent:true,opacity:.8});
+let body=new THREE.Mesh(new THREE.BoxGeometry(5,1.5,9),carMaterial);body.position.y=1.25;carGroup.add(body);let hood=new THREE.Mesh(new THREE.BoxGeometry(4.7,.45,3.2),carMaterial);hood.position.set(0,2.05,2.6);carGroup.add(hood);let cabin=new THREE.Mesh(new THREE.BoxGeometry(4.2,1.5,4.2),dark);cabin.position.set(0,2.35,-.7);carGroup.add(cabin);let windshield=new THREE.Mesh(new THREE.BoxGeometry(4,1.05,.12),glass);windshield.position.set(0,2.55,1.38);windshield.rotation.x=-.15;carGroup.add(windshield);let rear=new THREE.Mesh(new THREE.BoxGeometry(4,1,.12),glass);rear.position.set(0,2.5,-2.75);rear.rotation.x=.15;carGroup.add(rear);
+let front=new THREE.Mesh(new THREE.BoxGeometry(5.15,.5,.45),dark);front.position.set(0,.9,4.65);carGroup.add(front);let grille=new THREE.Mesh(new THREE.BoxGeometry(2.2,.35,.08),chrome);grille.position.set(0,1.15,4.9);carGroup.add(grille);let lamp=mat(0xffffcc,.3,.1);[-1.55,1.55].forEach(x=>{let l=new THREE.Mesh(new THREE.BoxGeometry(.75,.35,.12),lamp);l.position.set(x,1.65,4.72);carGroup.add(l);let r=new THREE.Mesh(new THREE.BoxGeometry(.65,.3,.12),red);r.position.set(x,1.55,-4.58);carGroup.add(r)});let spoiler=new THREE.Mesh(new THREE.BoxGeometry(4.5,.18,.5),dark);spoiler.position.set(0,2.25,-4.25);carGroup.add(spoiler);
+[[-2.3,2.6],[2.3,2.6],[-2.3,-2.6],[2.3,-2.6]].forEach(p=>{let g=new THREE.Group();g.position.set(p[0],.82,p[1]);let tire=new THREE.Mesh(new THREE.CylinderGeometry(.92,.92,.48,20),rubber);tire.rotation.z=Math.PI/2;g.add(tire);let rim=new THREE.Mesh(new THREE.CylinderGeometry(.57,.57,.52,20),chrome);rim.rotation.z=Math.PI/2;g.add(rim);let hub=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,.56,12),dark);hub.rotation.z=Math.PI/2;g.add(hub);g.userData.wheel=true;wheels.push(g);carGroup.add(g)});carGroup.position.set(1000,0,-1400);scene.add(carGroup)}
+function createGhost(){ghostGroup=new THREE.Group();let gm=new THREE.MeshBasicMaterial({color:0x00ffff,transparent:true,opacity:.3,wireframe:true});let b=new THREE.Mesh(new THREE.BoxGeometry(5,1.5,9),gm);b.position.y=1.25;ghostGroup.add(b);ghostGroup.visible=false;scene.add(ghostGroup)}
+function resetCar(){if(!carGroup)return;speed=0;playerYaw=0;carGroup.position.set(1000,0,-1400);carGroup.rotation.y=0}
+function activateNitro(){nitroCooldown=true;nitroMult=5;nitroAutoDrive=true;nitroBox.innerText='NITRO: ACTIVE!!';speedoBox.style.borderColor='red';speedNum.style.color='red';setTimeout(()=>{nitroMult=1;nitroAutoDrive=false;nitroBox.innerText='NITRO: COOLING...';speedoBox.style.borderColor='#0ff';speedNum.style.color='#0ff'},1000);setTimeout(()=>{nitroCooldown=false;nitroBox.innerText='NITRO: READY'},6000)}
+function animate(){requestAnimationFrame(animate);if(rainbow&&carMaterial)carMaterial.color.setHSL(Date.now()%2000/2000,1,.5);if(keys.KeyW||touchKeys.W||nitroAutoDrive)speed=Math.min(speed+(nitroAutoDrive?1.5:.15)*nitroMult,5.6*nitroMult);else if(keys.KeyS||touchKeys.S)speed=Math.max(speed-.2,-2);else speed*=.985;if(keys.KeyA||touchKeys.A)playerYaw+=.045;if(keys.KeyD||touchKeys.D)playerYaw-=.045;wheels.forEach(w=>w.rotation.x+=speed*.3);speedNum.innerText=Math.abs(Math.floor(speed*40));let nx=carGroup.position.x+Math.sin(playerYaw)*speed,nz=carGroup.position.z+Math.cos(playerYaw)*speed,on=false;for(let i=0;i<trackMidpoints.length;i++){let a=trackMidpoints[i],b=trackMidpoints[(i+1)%trackMidpoints.length],l=b.clone().sub(a),t=Math.max(0,Math.min(1,((nx-a.x)*l.x+(nz-a.z)*l.z)/l.lengthSq())),px=a.x+t*l.x,pz=a.z+t*l.z;if(Math.hypot(nx-px,nz-pz)<72){on=true;break}}if(!on)speed=Math.max(0,speed-.625);else carGroup.position.set(nx,0,nz);carGroup.rotation.y=playerYaw;if(lapActive&&bestLapData.length){ghostGroup.visible=true;if(ghostFrame<bestLapData.length){let g=bestLapData[ghostFrame++];ghostGroup.position.set(g.x,0,g.z);ghostGroup.rotation.y=g.yaw}}if(carGroup.position.x>800&&carGroup.position.z>500&&!lapActive){lapActive=true;startTime=Date.now();currentLapData=[];ghostFrame=0}if(lapActive){currentLapData.push({x:carGroup.position.x,z:carGroup.position.z,yaw:carGroup.rotation.y});let ms=Date.now()-startTime;currTime.innerText=formatTime(ms);if(carGroup.position.x<-800)checkpointReached=true;if(carGroup.position.x>800&&carGroup.position.z< -500&&checkpointReached){if(ms<bestTime){bestTime=ms;bestLapData=[...currentLapData];bestTimeEl.innerText='BEST: '+formatTime(ms);localStorage.setItem('the_racers_best_ms',ms)}checkpointReached=false;startTime=Date.now();currentLapData=[];ghostFrame=0}}camera.position.set(carGroup.position.x-Math.sin(playerYaw)*55,30,carGroup.position.z-Math.cos(playerYaw)*55);camera.lookAt(carGroup.position);renderer.render(scene,camera)}
+function formatTime(ms){let s=Math.floor(ms/1000),c=Math.floor(ms%1000/10);return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}.${String(c).padStart(2,'0')}`}addEventListener('resize',()=>{if(!camera)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)})
+</script></body></html>
